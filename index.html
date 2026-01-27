@@ -3,152 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER AI | نظام الطقس الذكي</title>
+    <title>EARTH PRO | محطة الرصد الجوي العالمية</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;500;700&family=Tajawal:wght@300;500;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;800&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* --- إعدادات التصميم الأساسية --- */
         :root {
-            --primary: #00f3ff;   /* الأزرق النيوني */
-            --secondary: #7000ff; /* البنفسجي */
-            --glass: rgba(10, 15, 25, 0.75); /* الزجاج الشفاف */
+            --blue: #4facfe;
+            --dark: #0a0a0a;
+            --glass: rgba(15, 20, 30, 0.75);
             --border: rgba(255, 255, 255, 0.1);
-            --bg: #000000;
+            --text-glow: 0 0 10px rgba(79, 172, 254, 0.5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
         
-        body { 
-            background-color: var(--bg); 
-            overflow: hidden; 
-            height: 100vh; 
-            color: white; 
-            user-select: none; 
-        }
+        body { background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; }
 
-        /* حاوية الرسم ثلاثي الأبعاد */
-        #canvas-container { position: absolute; inset: 0; z-index: 1; transition: filter 0.5s; }
-        
-        /* واجهة المستخدم */
+        /* Canvas */
+        #canvas-container { position: absolute; inset: 0; z-index: 1; }
+
+        /* UI Layout */
         #ui-layer {
             position: absolute; inset: 0; z-index: 10; pointer-events: none;
             display: flex; flex-direction: column; padding: 20px;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
         }
 
-        /* 1. الرأس وشريط البحث */
+        /* HEADER */
         header { 
             display: flex; justify-content: space-between; align-items: center; 
             pointer-events: auto; width: 100%; z-index: 20;
         }
-        
+
         .brand {
-            font-family: 'Chakra Petch', sans-serif; font-size: 1.5rem; letter-spacing: 2px;
-            background: linear-gradient(90deg, #fff, var(--primary));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold;
+            font-family: 'Exo 2'; font-size: 1.6rem; letter-spacing: 2px; font-weight: 800;
+            background: linear-gradient(90deg, #fff, var(--blue));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        .search-bar {
-            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+        .search-dock {
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(15px);
             border: 1px solid var(--border); border-radius: 50px;
-            padding: 8px 15px; display: flex; align-items: center; gap: 10px;
-            transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            padding: 5px 10px; display: flex; align-items: center; gap: 8px;
+            transition: 0.3s;
         }
-        .search-bar:focus-within { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,243,255,0.2); }
-        
-        input { 
-            background: transparent; border: none; color: white; width: 150px; 
-            font-size: 1rem; text-align: right; 
-        }
-        
-        .icon-btn {
-            background: none; border: none; color: white; cursor: pointer; 
-            font-size: 1.2rem; transition: 0.2s;
-        }
-        .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
+        .search-dock:focus-within { border-color: var(--blue); box-shadow: 0 0 20px rgba(79, 172, 254, 0.3); }
 
-        /* 2. نواة الذكاء الاصطناعي (AI Core) */
-        .ai-core {
-            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; align-items: center;
-            opacity: 0; transition: opacity 0.5s; pointer-events: none;
-        }
-        .ai-core.active { opacity: 1; }
-        
-        .neural-orb {
-            width: 50px; height: 50px; border-radius: 50%;
-            background: radial-gradient(circle, var(--primary), transparent);
-            box-shadow: 0 0 20px var(--primary);
-            animation: pulse-ai 1.5s infinite ease-in-out;
-        }
-        .ai-text {
-            background: rgba(0,0,0,0.9); padding: 8px 20px; border-radius: 20px;
-            margin-top: 15px; font-size: 0.9rem; color: var(--primary);
-            border: 1px solid var(--primary); text-align: center;
-            box-shadow: 0 0 15px rgba(0,243,255,0.2);
-        }
+        input { background: transparent; border: none; color: white; width: 140px; font-size: 0.95rem; text-align: right; }
+        .btn-icon { background: none; border: none; color: white; cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.2s; }
+        .btn-icon:hover { background: rgba(255,255,255,0.1); color: var(--blue); }
 
-        /* 3. لوحة المعلومات (Dashboard) */
+        /* GEOLOCATION BTN */
+        .geo-btn {
+            background: linear-gradient(135deg, var(--blue), #00f2fe);
+            color: #000; font-weight: bold; border: none; padding: 8px 15px;
+            border-radius: 30px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+            font-size: 0.85rem; box-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
+            transition: 0.3s;
+        }
+        .geo-btn:hover { transform: scale(1.05); }
+
+        /* DASHBOARD */
         .dashboard {
             margin-top: auto; display: grid; gap: 20px;
-            grid-template-columns: 1fr 380px; /* يسار: فراغ/رسم بياني، يمين: البطاقة */
+            grid-template-columns: 1fr 400px;
             width: 100%; pointer-events: none; align-items: end;
         }
 
-        .card {
-            background: var(--glass); backdrop-filter: blur(25px);
-            border: 1px solid var(--border); border-radius: 25px;
+        .panel {
+            background: var(--glass); backdrop-filter: blur(30px);
+            border: 1px solid var(--border); border-radius: 20px;
             padding: 25px; pointer-events: auto;
             transform: translateY(100px); opacity: 0;
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1);
         }
-        .card.show { transform: translateY(0); opacity: 1; }
+        .panel.active { transform: translateY(0); opacity: 1; }
 
-        /* بطاقة الطقس الرئيسية */
-        .weather-main { text-align: right; border-right: 4px solid var(--primary); }
-        .temp-big { font-family: 'Chakra Petch'; font-size: 4rem; line-height: 1; font-weight: bold; margin: 10px 0; }
-        .city-name { color: #ccc; font-size: 1.4rem; font-weight: 500; }
-        
-        .ai-button {
-            margin-top: 15px; background: linear-gradient(90deg, var(--secondary), var(--primary));
-            border: none; padding: 10px 25px; border-radius: 50px; color: white;
-            font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;
-            transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        /* Weather Info */
+        .weather-info { text-align: right; position: relative; overflow: hidden; }
+        .weather-info::before {
+            content: ''; position: absolute; top:0; right:0; width: 4px; height: 100%;
+            background: var(--blue); box-shadow: 0 0 10px var(--blue);
         }
-        .ai-button:hover { transform: translateY(-2px); box-shadow: 0 0 20px var(--secondary); }
 
-        .stats-grid { 
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; 
-            margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; 
-        }
-        .stat-item span { font-size: 0.75rem; color: #888; display: block; margin-bottom: 2px; }
-        .stat-item strong { font-size: 1rem; font-family: 'Chakra Petch'; }
+        .location-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .city-name { font-size: 1.5rem; font-weight: 700; }
+        .date-time { font-size: 0.8rem; color: #aaa; font-family: 'Exo 2'; }
 
-        /* الرسم البياني */
-        .chart-card { height: 180px; display: flex; flex-direction: column; justify-content: center; }
+        .main-temp-wrapper { display: flex; align-items: center; justify-content: flex-end; gap: 15px; margin: 10px 0; }
+        .weather-icon-lg { font-size: 3rem; }
+        .temp-huge { font-family: 'Exo 2'; font-size: 4.5rem; line-height: 1; font-weight: 700; }
 
-        /* --- شاشة التحميل --- */
-        .loader { 
-            position: fixed; inset: 0; background: #000; z-index: 100; 
-            display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px;
-            transition: opacity 0.8s; 
-        }
-        .loader-text { color: var(--primary); font-family: 'Chakra Petch'; letter-spacing: 5px; animation: blink 1s infinite; }
+        .desc-text { color: var(--blue); font-size: 1.1rem; margin-bottom: 20px; text-transform: capitalize; }
 
-        /* --- التجاوب مع الجوال (Mobile) --- */
+        /* Grid Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        .stat-box { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 10px; text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #888; display: block; margin-bottom: 3px; }
+        .stat-val { font-size: 0.95rem; font-weight: bold; font-family: 'Exo 2'; }
+
+        /* Extra Details Row */
+        .extra-row { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; }
+        .extra-item { flex: 1; background: rgba(0,255,100,0.05); padding: 8px; border-radius: 8px; font-size: 0.8rem; text-align: center; border: 1px solid rgba(0,255,100,0.1); }
+        .extra-item.bad { background: rgba(255,50,50,0.05); border-color: rgba(255,50,50,0.1); }
+
+        /* Chart */
+        .chart-panel { height: 180px; display: flex; flex-direction: column; justify-content: center; }
+
+        /* Loader */
+        .loader { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; transition: opacity 1s; }
+        .loader-ring { width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s infinite linear; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr; gap: 10px; }
-            .chart-card { display: none; } /* إخفاء الرسم البياني على الجوال لتوفير المساحة */
-            .card { border-radius: 25px 25px 0 0; margin-bottom: -20px; padding-bottom: 40px; }
-            .temp-big { font-size: 3.5rem; }
-            header { padding-top: 10px; }
-            input { width: 110px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .dashboard { grid-template-columns: 1fr; }
+            .chart-panel { display: none; }
+            .temp-huge { font-size: 3.5rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .search-dock { width: 100%; }
+            input { width: 100%; }
+            .geo-btn span { display: none; } /* Hide text on small screens, keep icon */
         }
-
-        @keyframes pulse-ai { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 40px var(--primary); } 100% { transform: scale(1); opacity: 0.8; } }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 
     <script type="importmap">
@@ -164,47 +143,51 @@
 <body>
 
     <div class="loader" id="loader">
-        <div style="width:50px; height:50px; border:2px solid var(--primary); border-radius:50%; border-top-color:transparent; animation:pulse-ai 1s infinite linear"></div>
-        <div class="loader-text">INITIALIZING AETHER...</div>
+        <div class="loader-ring"></div>
     </div>
 
     <div id="canvas-container"></div>
 
     <div id="ui-layer">
         <header>
-            <div class="search-bar">
-                <button class="icon-btn" onclick="toggleVoice()" title="الأوامر الصوتية">🎙️</button>
-                <input type="text" id="cityInput" placeholder="اسم المدينة..." onkeypress="if(event.key==='Enter') searchCity()">
-                <button class="icon-btn" onclick="searchCity()" title="بحث">🔍</button>
+            <div class="search-dock">
+                <button class="btn-icon" onclick="searchCity()">🔍</button>
+                <input type="text" id="cityInput" placeholder="بحث عن مدينة..." onkeypress="if(event.key==='Enter') searchCity()">
+                <button class="geo-btn" onclick="locateUser()">
+                    📍 <span>موقعي</span>
+                </button>
             </div>
-            <div class="brand">AETHER <span style="font-size:0.5em; color:var(--primary); vertical-align: top;">AI</span></div>
+            <div class="brand">EARTH <span style="font-weight:300">PRO</span></div>
         </header>
 
-        <div class="ai-core" id="aiCore">
-            <div class="neural-orb"></div>
-            <div class="ai-text" id="aiText">جارٍ تحليل طبقات الجو...</div>
-        </div>
-
         <div class="dashboard">
-            <div class="card chart-card" id="chartCard">
-                <div style="font-size:0.8rem; color:var(--primary); margin-bottom:10px; font-family:'Chakra Petch'">24H FORECAST</div>
+            <div class="panel chart-panel" id="chartPanel">
+                <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">توقعات الـ 24 ساعة القادمة</div>
                 <canvas id="weatherChart"></canvas>
             </div>
 
-            <div class="card weather-main" id="weatherCard">
-                <div class="city-name" id="uiCity">--</div>
-                <div class="temp-big" id="uiTemp">00°</div>
-                <div style="color:var(--primary); margin-bottom:15px; font-size:1.1rem;" id="uiDesc">--</div>
-                
-                <button class="ai-button" onclick="triggerAIAnalysis()">
-                    <span>🤖</span> استشاري الذكاء الاصطناعي
-                </button>
+            <div class="panel weather-info" id="weatherPanel">
+                <div class="location-header">
+                    <div class="date-time" id="localTime">--:--</div>
+                    <div class="city-name" id="uiCity">--</div>
+                </div>
+
+                <div class="main-temp-wrapper">
+                    <div class="weather-icon-lg" id="wIcon">☀️</div>
+                    <div class="temp-huge" id="uiTemp">00°</div>
+                </div>
+                <div class="desc-text" id="uiDesc">--</div>
 
                 <div class="stats-grid">
-                    <div class="stat-item"><span>الرياح</span><strong id="uiWind">--</strong></div>
-                    <div class="stat-item"><span>الرطوبة</span><strong id="uiHum">--</strong></div>
-                    <div class="stat-item"><span>UV Index</span><strong id="uiUV">--</strong></div>
-                    <div class="stat-item"><span>الضغط</span><strong id="uiPress">--</strong></div>
+                    <div class="stat-box"><span class="stat-label">الرياح</span><span class="stat-val" id="uiWind">--</span></div>
+                    <div class="stat-box"><span class="stat-label">الرطوبة</span><span class="stat-val" id="uiHum">--</span></div>
+                    <div class="stat-box"><span class="stat-label">الضغط</span><span class="stat-val" id="uiPress">--</span></div>
+                    <div class="stat-box"><span class="stat-label">الرؤية</span><span class="stat-val" id="uiVis">--</span></div>
+                </div>
+
+                <div class="extra-row">
+                    <div class="extra-item" id="aqiBox">جودة الهواء: <b id="uiAQI">--</b></div>
+                    <div class="extra-item">UV Index: <b id="uiUV">--</b></div>
                 </div>
             </div>
         </div>
@@ -215,288 +198,294 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import TWEEN from '@tweenjs/tween.js';
 
-        // --- 1. إعداد المحرك ثلاثي الأبعاد (3D Engine) ---
+        // --- 1. SETUP SCENE ---
         const scene = new THREE.Scene();
-        // ضباب فضائي عميق
-        scene.fog = new THREE.FogExp2(0x000000, 0.02);
-
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        // تعديل الكاميرا حسب نوع الجهاز
-        const isMobile = window.innerWidth < 768;
-        camera.position.set(0, 0, isMobile ? 20 : 15);
+        camera.position.z = 18;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
         controls.enablePan = false;
-        controls.minDistance = 8;
-        controls.maxDistance = 30;
+        controls.minDistance = 7;
+        controls.maxDistance = 50;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.8;
+        controls.autoRotateSpeed = 0.5;
 
-        // --- 2. بناء العالم (World Building) ---
+        // --- 2. REALISTIC EARTH ---
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
 
-        // الكرة الأرضية
-        const globe = new THREE.Mesh(
-            new THREE.SphereGeometry(5, 64, 64),
-            new THREE.MeshPhysicalMaterial({ 
-                color: 0x111111, 
-                roughness: 0.6, 
-                metalness: 0.5,
-                emissive: 0x000000
-            })
-        );
-        earthGroup.add(globe);
+        const textureLoader = new THREE.TextureLoader();
 
-        // الشبكة الهولوغرافية (Tech Grid)
-        const wire = new THREE.LineSegments(
-            new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(5.1, 10)),
-            new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.1 })
-        );
-        earthGroup.add(wire);
+        // A. Earth Sphere (Diffuse + Specular + Normal)
+        // Using reliable high-res textures from GitHub repository
+        const earthGeo = new THREE.SphereGeometry(5, 64, 64);
+        const earthMat = new THREE.MeshPhongMaterial({
+            map: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
+            specularMap: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'),
+            normalMap: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
+            shininess: 15
+        });
+        const earth = new THREE.Mesh(earthGeo, earthMat);
+        earthGroup.add(earth);
 
-        // الغلاف الجوي المتوهج (Atmosphere Shader)
-        const atmos = new THREE.Mesh(
-            new THREE.SphereGeometry(5.8, 64, 64),
-            new THREE.ShaderMaterial({
-                uniforms: { color: { value: new THREE.Color(0x00f3ff) } },
-                vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                fragmentShader: `uniform vec3 color; varying vec3 vNormal; void main() { float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0); gl_FragColor = vec4(color, 1.0) * intensity; }`,
-                side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true
-            })
-        );
-        scene.add(atmos);
+        // B. Cloud Layer
+        const cloudGeo = new THREE.SphereGeometry(5.08, 64, 64);
+        const cloudMat = new THREE.MeshPhongMaterial({
+            map: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
+        });
+        const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        earthGroup.add(clouds);
 
-        // الإضاءة
-        const sun = new THREE.DirectionalLight(0xffffff, 2);
-        sun.position.set(10, 5, 10);
-        scene.add(sun);
-        scene.add(new THREE.AmbientLight(0x404040)); // إضاءة محيطة خافتة
+        // C. Atmosphere Halo (Shader)
+        const atmosGeo = new THREE.SphereGeometry(5.4, 64, 64);
+        const atmosMat = new THREE.ShaderMaterial({
+            uniforms: { 
+                c: { value: 0.6 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(0x4facfe) }, viewVector: { value: camera.position } 
+            },
+            vertexShader: `uniform vec3 viewVector; varying float intensity; void main() { vec3 vNormal = normalize(normalMatrix * normal); vec3 vNormel = normalize(normalMatrix * viewVector); intensity = pow(c - dot(vNormal, vNormel), p); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `uniform vec3 glowColor; varying float intensity; void main() { vec3 glow = glowColor * intensity; gl_FragColor = vec4(glow, 1.0); }`,
+            side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true
+        });
+        const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+        scene.add(atmosphere);
 
-        // النجوم الخلفية
+        // D. Starfield
         const starGeo = new THREE.BufferGeometry();
-        const starPos = [];
-        for(let i=0; i<2000; i++) {
-            starPos.push((Math.random()-0.5)*400, (Math.random()-0.5)*400, (Math.random()-0.5)*400);
-        }
-        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff, size:0.15}));
+        const starCount = 3000;
+        const posArray = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random()-0.5) * 600;
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starMat = new THREE.PointsMaterial({size:0.2, color:0xffffff, transparent:true, opacity:0.8});
+        const stars = new THREE.Points(starGeo, starMat);
         scene.add(stars);
 
-        // --- 3. معالجة التجاوب (Responsive Handling) ---
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            // إعادة ضبط الكاميرا عند تغيير الحجم
-            camera.position.z = window.innerWidth < 768 ? 20 : 15;
-        });
+        // E. Lighting
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+        sunLight.position.set(20, 10, 20);
+        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x404040, 0.5)); // Soft fill light
 
-        // --- 4. منطق البيانات والذكاء الاصطناعي ---
-        let globalData = null; // لتخزين البيانات لاستخدامها في التحليل
+        // --- 3. GEOLOCATION & WEATHER LOGIC ---
+        
+        let pin = null;
+        let chartInstance = null;
 
-        // جعل الدالة متاحة في HTML
+        // Auto Locate
+        window.locateUser = () => {
+            const btn = document.querySelector('.geo-btn');
+            btn.innerHTML = '⌛ جارٍ التحديد...';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        searchByCoords(latitude, longitude);
+                        btn.innerHTML = '📍 موقعي';
+                    },
+                    (error) => {
+                        alert("تعذر تحديد الموقع. يرجى تفعيل الـ GPS.");
+                        btn.innerHTML = '📍 موقعي';
+                    }
+                );
+            } else {
+                alert("المتصفح لا يدعم تحديد الموقع");
+            }
+        };
+
         window.searchCity = async () => {
             const city = document.getElementById('cityInput').value;
             if(!city) return;
-
-            // تفعيل واجهة "التفكير"
-            const aiCore = document.getElementById('aiCore');
-            const aiText = document.getElementById('aiText');
-            aiCore.classList.add('active');
-            aiText.innerText = "الاتصال بالأقمار الصناعية...";
-
+            
             try {
-                // 1. جلب الإحداثيات (Geocoding)
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=ar&format=json`);
-                const geoData = await geoRes.json();
-                
-                if (!geoData.results) throw new Error("لم يتم العثور على المدينة");
-                
-                const { latitude, longitude, name, country_code } = geoData.results[0];
-
-                // 2. جلب الطقس الشامل
-                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,is_day&hourly=temperature_2m&daily=uv_index_max&timezone=auto`);
-                const wData = await weatherRes.json();
-                
-                globalData = { ...wData, name, country_code };
-                
-                updateUI(globalData);
-                aiText.innerText = "تم استلام البيانات.";
-                
-                // إخفاء مؤشر الذكاء الاصطناعي
-                setTimeout(() => aiCore.classList.remove('active'), 1500);
-
-            } catch(e) {
-                alert("خطأ: تأكد من اسم المدينة أو اتصال الإنترنت.");
-                aiCore.classList.remove('active');
-            }
+                const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=ar&format=json`).then(r=>r.json());
+                if(!geo.results) throw new Error("Not Found");
+                searchByCoords(geo.results[0].latitude, geo.results[0].longitude);
+            } catch(e) { alert("لم يتم العثور على المدينة"); }
         };
 
-        function updateUI(data) {
-            const cur = data.current;
-            
-            // إظهار البطاقات
-            document.querySelectorAll('.card').forEach(c => c.classList.add('show'));
+        async function searchByCoords(lat, lon) {
+            // Animation
+            flyTo(lat, lon);
+            addPin(lat, lon);
 
-            // تحديث النصوص
-            document.getElementById('uiCity').innerText = `${data.name}, ${data.country_code}`;
+            // Fetch Data (Comprehensive)
+            // Including: Air Quality (AQI), UV, Pressure, Sunrise/Sunset
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m&daily=uv_index_max,sunrise,sunset&timezone=auto&air_quality=european_aqi`;
+            
+            const res = await fetch(url).then(r=>r.json());
+            updateUI(res, lat, lon);
+        }
+
+        function updateUI(data, lat, lon) {
+            const cur = data.current;
+            const daily = data.daily;
+            const hourly = data.hourly;
+            
+            // Show Panels
+            document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
+
+            // Basic Info
+            const timezone = data.timezone;
+            const timeString = new Date().toLocaleTimeString('en-US', { timeZone: timezone, hour: '2-digit', minute:'2-digit' });
+            
+            // Reverse Geocoding for City Name (Simple display)
+            // Note: Open-Meteo gives timezone city, for better accuracy we usually need reverse geo API. 
+            // Here we format the timezone string for display.
+            const cityDisplay = data.timezone.split('/')[1].replace(/_/g, ' ');
+
+            document.getElementById('uiCity').innerText = cityDisplay;
+            document.getElementById('localTime').innerText = `التوقيت المحلي: ${timeString}`;
             document.getElementById('uiTemp').innerText = Math.round(cur.temperature_2m) + "°";
+            document.getElementById('uiDesc').innerText = getWeatherText(cur.weather_code);
+            document.getElementById('wIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
+
+            // Stats
             document.getElementById('uiWind').innerText = cur.wind_speed_10m + " km/h";
             document.getElementById('uiHum').innerText = cur.relative_humidity_2m + "%";
             document.getElementById('uiPress').innerText = cur.surface_pressure + " hPa";
-            document.getElementById('uiUV').innerText = data.daily.uv_index_max[0];
-            document.getElementById('uiDesc').innerText = getWeatherText(cur.weather_code);
-
-            // تحديث الرسم البياني
-            updateChart(data.hourly);
-
-            // تغيير ألوان الثيم (نهار/ليل)
-            if(cur.is_day === 0) {
-                // الوضع الليلي
-                atmos.material.uniforms.color.value.setHex(0x7000ff); // بنفسجي
-                wire.material.color.setHex(0xff0055); // أحمر
+            document.getElementById('uiVis').innerText = (cur.visibility / 1000).toFixed(1) + " km";
+            
+            // Extra
+            document.getElementById('uiUV').innerText = daily.uv_index_max[0];
+            
+            // AQI (If available in API call)
+            if(data.current.european_aqi) {
+                const aqi = data.current.european_aqi;
+                const aqiEl = document.getElementById('uiAQI');
+                aqiEl.innerText = aqi;
+                const box = document.getElementById('aqiBox');
+                if(aqi > 50) box.classList.add('bad'); else box.classList.remove('bad');
             } else {
-                // الوضع النهاري
-                atmos.material.uniforms.color.value.setHex(0x00f3ff); // سماوي
-                wire.material.color.setHex(0x00f3ff);
+                document.getElementById('uiAQI').innerText = "N/A";
+            }
+
+            // Chart
+            updateChart(hourly);
+
+            // Day/Night Lighting
+            if(cur.is_day === 1) {
+                sunLight.intensity = 2.5;
+                atmosphere.material.uniforms.glowColor.value.setHex(0x4facfe);
+            } else {
+                sunLight.intensity = 0.2;
+                atmosphere.material.uniforms.glowColor.value.setHex(0x1a237e); // Night glow
             }
         }
 
-        // --- 5. نظام الذكاء الاصطناعي (AI Analysis) ---
-        window.triggerAIAnalysis = () => {
-            if(!globalData) return;
-            
-            const aiCore = document.getElementById('aiCore');
-            const aiText = document.getElementById('aiText');
-            aiCore.classList.add('active');
-            
-            const d = globalData.current;
-            const uv = globalData.daily.uv_index_max[0];
-            
-            // توليد النص بناءً على القواعد المنطقية
-            let msg = `التحليل الذكي لمدينة ${globalData.name}. `;
-            
-            // تحليل الحرارة
-            if(d.temperature_2m > 35) msg += "درجة الحرارة مرتفعة جداً. أنصحك بالبقاء في أماكن مبردة وشرب الماء. ";
-            else if(d.temperature_2m > 25) msg += "الجو دافئ ومشمس، مناسب للأنشطة الصيفية. ";
-            else if(d.temperature_2m < 10) msg += "الطقس بارد، يرجى ارتداء ملابس دافئة لتجنب نزلات البرد. ";
-            else msg += "الطقس معتدل ولطيف جداً. ";
+        // --- 4. HELPERS ---
 
-            // تحليل الرياح والمطر
-            if(d.wind_speed_10m > 30) msg += "تحذير، سرعة الرياح عالية، كن حذراً أثناء القيادة. ";
-            if(d.weather_code >= 51) msg += "هناك احتمالية لهطول الأمطار، لا تنسَ المظلة. ";
-            if(uv > 7) msg += "مؤشر الأشعة فوق البنفسجية مرتفع، استخدم واقياً شمسياً. ";
+        function flyTo(lat, lon) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            
+            // Rotate Earth
+            const targetX = lat * (Math.PI / 180);
+            const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2);
 
-            aiText.innerText = msg;
+            new TWEEN.Tween(earthGroup.rotation)
+                .to({ x: targetX, y: targetY }, 1500)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+        }
 
-            // نطق النص (Text-to-Speech)
-            if('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(msg);
-                utterance.lang = 'ar-SA'; // اللهجة العربية
-                utterance.rate = 0.9; // سرعة أبطأ قليلاً للوضوح
-                window.speechSynthesis.speak(utterance);
-                
-                utterance.onend = () => aiCore.classList.remove('active');
-            } else {
-                setTimeout(() => aiCore.classList.remove('active'), 5000);
-            }
-        };
+        function addPin(lat, lon) {
+            if(pin) earthGroup.remove(pin);
+            
+            // Calculate Position on Sphere
+            const r = 5.05;
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(r * Math.sin(phi) * Math.cos(theta));
+            const y = r * Math.cos(phi);
+            const z = r * Math.sin(phi) * Math.sin(theta);
 
-        // --- 6. الرسم البياني (Chart.js) ---
-        let chartInstance = null;
+            // Pin Mesh
+            const geom = new THREE.ConeGeometry(0.1, 0.4, 8);
+            geom.rotateX(Math.PI/2);
+            const mat = new THREE.MeshBasicMaterial({color: 0xff0055});
+            pin = new THREE.Mesh(geom, mat);
+            pin.position.set(x, y, z);
+            pin.lookAt(0,0,0);
+            earthGroup.add(pin);
+        }
+
         function updateChart(hourly) {
             const ctx = document.getElementById('weatherChart').getContext('2d');
             if(chartInstance) chartInstance.destroy();
-
-            // إنشاء تدرج لوني
-            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-            gradient.addColorStop(0, 'rgba(0, 243, 255, 0.5)');
-            gradient.addColorStop(1, 'rgba(0, 243, 255, 0)');
+            
+            const gradient = ctx.createLinearGradient(0,0,0,150);
+            gradient.addColorStop(0, 'rgba(79, 172, 254, 0.6)');
+            gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: hourly.time.slice(0, 24).map(t => t.slice(11, 16)), // الساعات القادمة
+                    labels: hourly.time.slice(0, 24).map(t => t.slice(11, 16)),
                     datasets: [{
-                        label: 'الطقس',
                         data: hourly.temperature_2m.slice(0, 24),
-                        borderColor: '#00f3ff',
+                        borderColor: '#4facfe',
                         backgroundColor: gradient,
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        pointHoverRadius: 4,
-                        fill: true,
-                        tension: 0.4
+                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: false }, // إخفاء المحاور لنظافة التصميم
-                        y: { display: false } 
-                    }
+                    scales: { x: { display: false }, y: { display: false } }
                 }
             });
         }
 
-        // --- أدوات مساعدة ---
         function getWeatherText(code) {
-            const codes = { 0:"سماء صافية", 1:"غائم جزئياً", 2:"غائم", 3:"ملبد بالغيوم", 45:"ضباب", 51:"رذاذ خفيف", 61:"مطر", 71:"ثلوج", 95:"عاصفة رعدية" };
-            return codes[code] || "متقلب";
+            const map = { 0:"صافٍ", 1:"غائم جزئياً", 2:"غائم", 3:"ملبد", 45:"ضباب", 51:"رذاذ", 61:"مطر", 71:"ثلوج", 95:"عاصفة" };
+            return map[code] || "معتدل";
         }
 
-        // الأوامر الصوتية
-        window.toggleVoice = () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!SpeechRecognition) { alert("المتصفح لا يدعم الأوامر الصوتية"); return; }
-            
-            const rec = new SpeechRecognition();
-            rec.lang = 'ar-SA';
-            rec.start();
-            
-            const aiCore = document.getElementById('aiCore');
-            aiCore.classList.add('active');
-            document.getElementById('aiText').innerText = "تحدث الآن باسم المدينة...";
+        function getWeatherIcon(code, isDay) {
+            if(code === 0) return isDay ? "☀️" : "🌙";
+            if(code <= 3) return "☁️";
+            if(code <= 50) return "🌫️";
+            if(code <= 67) return "🌧️";
+            if(code <= 77) return "❄️";
+            return "⛈️";
+        }
 
-            rec.onresult = (e) => {
-                const txt = e.results[0][0].transcript;
-                document.getElementById('cityInput').value = txt;
-                searchCity();
-            };
-            rec.onend = () => aiCore.classList.remove('active');
-        };
-
-        // حلقة التحريك (Animation Loop)
-        function animate() {
+        // Loop
+        function animate(t) {
             requestAnimationFrame(animate);
+            TWEEN.update(t);
             controls.update();
-            earthGroup.rotation.y += 0.0005; // دوران بطيء للأرض
-            stars.rotation.y -= 0.0002; // دوران النجوم
+            
+            // Rotations
+            clouds.rotation.y += 0.00025; // Clouds move slightly faster
+            if(!pin) earthGroup.rotation.y += 0.0001; // Idle spin
+            
+            // Atmosphere Shader Update
+            atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, atmosphere.position);
+            
             renderer.render(scene, camera);
         }
         animate();
 
-        // إخفاء شاشة التحميل عند البدء
+        // Load remove
         window.onload = () => {
-            setTimeout(() => {
-                const loader = document.getElementById('loader');
-                loader.style.opacity = '0';
-                setTimeout(() => loader.remove(), 800);
-            }, 1000);
+            setTimeout(() => document.getElementById('loader').style.opacity = 0, 1000);
+            setTimeout(() => document.getElementById('loader').remove(), 2000);
         };
 
     </script>
 </body>
 </html>
-
