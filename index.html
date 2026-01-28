@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EARTH PRO | محطة الرصد الجوي العالمية</title>
+    <title>EARTH PRO v2 | تفاعلي</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;800&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;700;900&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
             --blue: #4facfe;
+            --purple: #7028e4;
             --dark: #0a0a0a;
-            --glass: rgba(15, 20, 30, 0.75);
-            --border: rgba(255, 255, 255, 0.1);
-            --text-glow: 0 0 10px rgba(79, 172, 254, 0.5);
+            --glass: rgba(15, 20, 30, 0.85);
+            --border: rgba(255, 255, 255, 0.15);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -22,13 +23,13 @@
         body { background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; }
 
         /* Canvas */
-        #canvas-container { position: absolute; inset: 0; z-index: 1; }
+        #canvas-container { position: absolute; inset: 0; z-index: 1; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
 
         /* UI Layout */
         #ui-layer {
             position: absolute; inset: 0; z-index: 10; pointer-events: none;
             display: flex; flex-direction: column; padding: 20px;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
         }
 
         /* HEADER */
@@ -38,95 +39,111 @@
         }
 
         .brand {
-            font-family: 'Exo 2'; font-size: 1.6rem; letter-spacing: 2px; font-weight: 800;
+            font-family: 'Exo 2'; font-size: 1.8rem; letter-spacing: 2px; font-weight: 900;
             background: linear-gradient(90deg, #fff, var(--blue));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
         }
 
         .search-dock {
             background: rgba(0,0,0,0.6); backdrop-filter: blur(15px);
             border: 1px solid var(--border); border-radius: 50px;
             padding: 5px 10px; display: flex; align-items: center; gap: 8px;
-            transition: 0.3s;
+            transition: 0.3s; box-shadow: var(--shadow);
         }
-        .search-dock:focus-within { border-color: var(--blue); box-shadow: 0 0 20px rgba(79, 172, 254, 0.3); }
+        .search-dock:focus-within { border-color: var(--blue); box-shadow: 0 0 25px rgba(79, 172, 254, 0.4); }
 
-        input { background: transparent; border: none; color: white; width: 140px; font-size: 0.95rem; text-align: right; }
-        .btn-icon { background: none; border: none; color: white; cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.2s; }
+        input { background: transparent; border: none; color: white; width: 180px; font-size: 1rem; text-align: right; padding: 5px; }
+        .btn-icon { background: none; border: none; color: white; cursor: pointer; padding: 10px; border-radius: 50%; transition: 0.2s; font-size: 1.1rem; }
         .btn-icon:hover { background: rgba(255,255,255,0.1); color: var(--blue); }
+        .btn-icon.recording { color: #ff4444; animation: pulse-red 1.5s infinite; }
 
-        /* GEOLOCATION BTN */
-        .geo-btn {
-            background: linear-gradient(135deg, var(--blue), #00f2fe);
-            color: #000; font-weight: bold; border: none; padding: 8px 15px;
-            border-radius: 30px; cursor: pointer; display: flex; align-items: center; gap: 5px;
-            font-size: 0.85rem; box-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
-            transition: 0.3s;
-        }
-        .geo-btn:hover { transform: scale(1.05); }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
 
         /* DASHBOARD */
         .dashboard {
-            margin-top: auto; display: grid; gap: 20px;
-            grid-template-columns: 1fr 400px;
-            width: 100%; pointer-events: none; align-items: end;
+            margin-top: auto; display: flex; gap: 20px; align-items: flex-end;
+            width: 100%; pointer-events: none;
         }
 
         .panel {
-            background: var(--glass); backdrop-filter: blur(30px);
-            border: 1px solid var(--border); border-radius: 20px;
-            padding: 25px; pointer-events: auto;
+            background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 24px;
+            padding: 20px; pointer-events: auto;
             transform: translateY(100px); opacity: 0;
             transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1);
+            box-shadow: var(--shadow);
         }
         .panel.active { transform: translateY(0); opacity: 1; }
 
-        /* Weather Info */
-        .weather-info { text-align: right; position: relative; overflow: hidden; }
-        .weather-info::before {
-            content: ''; position: absolute; top:0; right:0; width: 4px; height: 100%;
-            background: var(--blue); box-shadow: 0 0 10px var(--blue);
+        /* Left Side: Forecast & Chart */
+        .left-col { display: flex; flex-direction: column; gap: 15px; width: 350px; }
+        
+        .forecast-row {
+            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;
+            scrollbar-width: none; /* Firefox */
+        }
+        .forecast-row::-webkit-scrollbar { display: none; }
+        
+        .day-card {
+            background: rgba(255,255,255,0.05); border-radius: 12px;
+            padding: 8px; text-align: center; min-width: 60px;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .day-name { font-size: 0.7rem; color: #aaa; }
+        .day-icon { font-size: 1.2rem; }
+        .day-temp { font-size: 0.8rem; font-weight: bold; font-family: 'Exo 2'; }
+
+        /* Right Side: Main Weather */
+        .weather-main { flex: 1; max-width: 450px; position: relative; overflow: hidden; }
+        .weather-main::after {
+            content: ''; position: absolute; top:0; left:0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--blue), var(--purple));
         }
 
-        .location-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .city-name { font-size: 1.5rem; font-weight: 700; }
-        .date-time { font-size: 0.8rem; color: #aaa; font-family: 'Exo 2'; }
+        .location-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .city-name { font-size: 1.8rem; font-weight: 800; line-height: 1.2; }
+        .coords-text { font-size: 0.7rem; color: #666; font-family: 'Exo 2'; margin-top: 5px; }
+        .date-time { font-size: 0.85rem; color: #bbb; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; }
 
-        .main-temp-wrapper { display: flex; align-items: center; justify-content: flex-end; gap: 15px; margin: 10px 0; }
-        .weather-icon-lg { font-size: 3rem; }
-        .temp-huge { font-family: 'Exo 2'; font-size: 4.5rem; line-height: 1; font-weight: 700; }
+        .big-weather { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .temp-box { text-align: right; }
+        .temp-huge { font-family: 'Exo 2'; font-size: 4.5rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+        .weather-desc { font-size: 1.1rem; color: var(--blue); font-weight: 500; }
+        .icon-huge { font-size: 4rem; filter: drop-shadow(0 0 15px rgba(255,255,255,0.3)); }
 
-        .desc-text { color: var(--blue); font-size: 1.1rem; margin-bottom: 20px; text-transform: capitalize; }
+        .grid-details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .detail-item { background: rgba(255,255,255,0.03); padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .detail-label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 2px; }
+        .detail-val { font-size: 0.95rem; font-weight: 700; font-family: 'Exo 2'; }
 
-        /* Grid Stats */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
-        .stat-box { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 10px; text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #888; display: block; margin-bottom: 3px; }
-        .stat-val { font-size: 0.95rem; font-weight: bold; font-family: 'Exo 2'; }
-
-        /* Extra Details Row */
-        .extra-row { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; }
-        .extra-item { flex: 1; background: rgba(0,255,100,0.05); padding: 8px; border-radius: 8px; font-size: 0.8rem; text-align: center; border: 1px solid rgba(0,255,100,0.1); }
-        .extra-item.bad { background: rgba(255,50,50,0.05); border-color: rgba(255,50,50,0.1); }
-
-        /* Chart */
-        .chart-panel { height: 180px; display: flex; flex-direction: column; justify-content: center; }
+        /* Toast Notification */
+        .toast-container {
+            position: fixed; top: 90px; right: 20px; z-index: 100;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+        .toast {
+            background: rgba(20, 20, 30, 0.95); border-right: 4px solid var(--blue);
+            color: #fff; padding: 12px 20px; border-radius: 8px; min-width: 250px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: translateX(120%); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 0.9rem; pointer-events: auto; display: flex; align-items: center; gap: 10px;
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.error { border-color: #ff4444; }
 
         /* Loader */
-        .loader { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; transition: opacity 1s; }
-        .loader-ring { width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s infinite linear; }
-
+        .loader { position: fixed; inset: 0; background: #020202; z-index: 999; display: flex; justify-content: center; align-items: center; transition: opacity 0.8s; }
+        .loader-ring { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Responsive */
-        @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr; }
-            .chart-panel { display: none; }
+        @media (max-width: 800px) {
+            .dashboard { flex-direction: column-reverse; align-items: stretch; }
+            .left-col { width: 100%; display: none; } /* Hide chart on mobile to save space */
+            .weather-main { max-width: 100%; }
             .temp-huge { font-size: 3.5rem; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .search-dock { width: 100%; }
             input { width: 100%; }
-            .geo-btn span { display: none; } /* Hide text on small screens, keep icon */
         }
     </style>
 
@@ -146,48 +163,55 @@
         <div class="loader-ring"></div>
     </div>
 
+    <div class="toast-container" id="toastContainer"></div>
+
     <div id="canvas-container"></div>
 
     <div id="ui-layer">
         <header>
             <div class="search-dock">
                 <button class="btn-icon" onclick="searchCity()">🔍</button>
-                <input type="text" id="cityInput" placeholder="بحث عن مدينة..." onkeypress="if(event.key==='Enter') searchCity()">
-                <button class="geo-btn" onclick="locateUser()">
-                    📍 <span>موقعي</span>
-                </button>
+                <input type="text" id="cityInput" placeholder="اكتب المدينة أو انقر على الأرض..." onkeypress="if(event.key==='Enter') searchCity()">
+                <button class="btn-icon" id="micBtn" onclick="startVoice()">🎤</button>
+                <button class="btn-icon" onclick="locateUser()" title="موقعي الحالي">📍</button>
             </div>
-            <div class="brand">EARTH <span style="font-weight:300">PRO</span></div>
+            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v2</span></div>
         </header>
 
         <div class="dashboard">
-            <div class="panel chart-panel" id="chartPanel">
-                <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">توقعات الـ 24 ساعة القادمة</div>
-                <canvas id="weatherChart"></canvas>
+            <div class="panel left-col active">
+                <div style="font-size:0.9rem; font-weight:700; margin-bottom:5px;">توقعات 5 أيام</div>
+                <div class="forecast-row" id="forecastRow">
+                    <div class="day-card"><div class="day-name">--</div><div class="day-icon">-</div><div class="day-temp">--</div></div>
+                </div>
+                
+                <div style="height: 120px; margin-top:10px;">
+                    <canvas id="weatherChart"></canvas>
+                </div>
             </div>
 
-            <div class="panel weather-info" id="weatherPanel">
+            <div class="panel weather-main" id="weatherPanel">
                 <div class="location-header">
-                    <div class="date-time" id="localTime">--:--</div>
-                    <div class="city-name" id="uiCity">--</div>
+                    <div>
+                        <div class="date-time" id="localTime">--:--</div>
+                        <div class="coords-text" id="coordsDisplay">LAT: -- LON: --</div>
+                    </div>
+                    <div class="city-name" id="uiCity">اختر موقعاً</div>
                 </div>
 
-                <div class="main-temp-wrapper">
-                    <div class="weather-icon-lg" id="wIcon">☀️</div>
-                    <div class="temp-huge" id="uiTemp">00°</div>
-                </div>
-                <div class="desc-text" id="uiDesc">--</div>
-
-                <div class="stats-grid">
-                    <div class="stat-box"><span class="stat-label">الرياح</span><span class="stat-val" id="uiWind">--</span></div>
-                    <div class="stat-box"><span class="stat-label">الرطوبة</span><span class="stat-val" id="uiHum">--</span></div>
-                    <div class="stat-box"><span class="stat-label">الضغط</span><span class="stat-val" id="uiPress">--</span></div>
-                    <div class="stat-box"><span class="stat-label">الرؤية</span><span class="stat-val" id="uiVis">--</span></div>
+                <div class="big-weather">
+                    <div class="icon-huge" id="wIcon">🌍</div>
+                    <div class="temp-box">
+                        <div class="temp-huge" id="uiTemp">--°</div>
+                        <div class="weather-desc" id="uiDesc">نظام تفاعلي</div>
+                    </div>
                 </div>
 
-                <div class="extra-row">
-                    <div class="extra-item" id="aqiBox">جودة الهواء: <b id="uiAQI">--</b></div>
-                    <div class="extra-item">UV Index: <b id="uiUV">--</b></div>
+                <div class="grid-details">
+                    <div class="detail-item"><span class="detail-label">الرياح</span><span class="detail-val" id="uiWind">--</span></div>
+                    <div class="detail-item"><span class="detail-label">الرطوبة</span><span class="detail-val" id="uiHum">--</span></div>
+                    <div class="detail-item"><span class="detail-label">الضغط</span><span class="detail-val" id="uiPress">--</span></div>
+                    <div class="detail-item"><span class="detail-label">الرؤية</span><span class="detail-val" id="uiVis">--</span></div>
                 </div>
             </div>
         </div>
@@ -198,110 +222,176 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import TWEEN from '@tweenjs/tween.js';
 
-        // --- 1. SETUP SCENE ---
+        // --- GLOBAL VARIABLES ---
+        let pin = null;
+        let chartInstance = null;
+        let isFetching = false;
+
+        // --- 1. SCENE SETUP ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 18;
+        camera.position.z = 16;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.enablePan = false;
-        controls.minDistance = 7;
-        controls.maxDistance = 50;
+        controls.minDistance = 6;
+        controls.maxDistance = 40;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+        controls.autoRotateSpeed = 0.8;
 
-        // --- 2. REALISTIC EARTH ---
+        // --- 2. EARTH OBJECTS ---
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
 
-        const textureLoader = new THREE.TextureLoader();
+        const texLoader = new THREE.TextureLoader();
 
-        // A. Earth Sphere (Diffuse + Specular + Normal)
-        // Using reliable high-res textures from GitHub repository
+        // Earth
         const earthGeo = new THREE.SphereGeometry(5, 64, 64);
         const earthMat = new THREE.MeshPhongMaterial({
-            map: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
-            specularMap: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'),
-            normalMap: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
-            shininess: 15
+            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
+            specularMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'),
+            normalMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
+            shininess: 12
         });
         const earth = new THREE.Mesh(earthGeo, earthMat);
         earthGroup.add(earth);
 
-        // B. Cloud Layer
-        const cloudGeo = new THREE.SphereGeometry(5.08, 64, 64);
+        // Clouds
         const cloudMat = new THREE.MeshPhongMaterial({
-            map: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending,
-            side: THREE.DoubleSide
+            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
+            transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
         });
-        const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        const clouds = new THREE.Mesh(new THREE.SphereGeometry(5.08, 64, 64), cloudMat);
         earthGroup.add(clouds);
 
-        // C. Atmosphere Halo (Shader)
-        const atmosGeo = new THREE.SphereGeometry(5.4, 64, 64);
+        // Atmosphere Glow (Shader)
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { 
-                c: { value: 0.6 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(0x4facfe) }, viewVector: { value: camera.position } 
+                c: { value: 0.5 }, p: { value: 4.0 }, glowColor: { value: new THREE.Color(0x4facfe) }, viewVector: { value: camera.position } 
             },
             vertexShader: `uniform vec3 viewVector; varying float intensity; void main() { vec3 vNormal = normalize(normalMatrix * normal); vec3 vNormel = normalize(normalMatrix * viewVector); intensity = pow(c - dot(vNormal, vNormel), p); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
             fragmentShader: `uniform vec3 glowColor; varying float intensity; void main() { vec3 glow = glowColor * intensity; gl_FragColor = vec4(glow, 1.0); }`,
             side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true
         });
-        const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.4, 64, 64), atmosMat);
         scene.add(atmosphere);
 
-        // D. Starfield
+        // Twinkling Stars
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 3000;
+        const starCount = 4000;
         const posArray = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random()-0.5) * 600;
+        const sizeArray = new Float32Array(starCount);
+        for(let i=0; i<starCount; i++) {
+            posArray[i*3] = (Math.random()-0.5) * 800;
+            posArray[i*3+1] = (Math.random()-0.5) * 800;
+            posArray[i*3+2] = (Math.random()-0.5) * 800;
+            sizeArray[i] = Math.random() * 2;
+        }
         starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const starMat = new THREE.PointsMaterial({size:0.2, color:0xffffff, transparent:true, opacity:0.8});
+        starGeo.setAttribute('size', new THREE.BufferAttribute(sizeArray, 1));
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.3, transparent: true, opacity: 0.8});
         const stars = new THREE.Points(starGeo, starMat);
         scene.add(stars);
 
-        // E. Lighting
+        // Lights
         const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
         sunLight.position.set(20, 10, 20);
         scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x404040, 0.5)); // Soft fill light
+        scene.add(new THREE.AmbientLight(0x404040, 0.4));
 
-        // --- 3. GEOLOCATION & WEATHER LOGIC ---
+        // --- 3. INTERACTION (RAYCASTER) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isDragging = false;
+        let startPos = {x:0, y:0};
+
+        const canvas = document.getElementById('canvas-container');
         
-        let pin = null;
-        let chartInstance = null;
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = false;
+            startPos = {x: e.clientX, y: e.clientY};
+        });
 
-        // Auto Locate
+        canvas.addEventListener('mousemove', (e) => {
+            if(Math.abs(e.clientX - startPos.x) > 5 || Math.abs(e.clientY - startPos.y) > 5) {
+                isDragging = true;
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if(!isDragging) onGlobeClick(e);
+        });
+
+        // Touch support for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            isDragging = false;
+            startPos = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+        }, {passive: false});
+
+        function onGlobeClick(event) {
+            // Calculate mouse position
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            // Raycast against the Earth mesh (not the group, not clouds)
+            const intersects = raycaster.intersectObject(earth);
+
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                // Convert 3D point to Lat/Lon
+                // Note: This matches the texture mapping of the sphere
+                const spherical = new THREE.Spherical().setFromVector3(point);
+                
+                // Adjust for rotation of the earthGroup
+                // We need to act as if the earth is at rotation 0 to get the correct texture UV lat/lon
+                // However, our visual earth is rotating. 
+                // A simpler way for visual clicking is to use the UV coordinates if available, 
+                // OR mathematically compensate.
+                
+                // Simplified method using group rotation:
+                // We rotate the group, so the local point needs to be "unrotated"
+                const localPoint = point.clone().applyMatrix4(earthGroup.matrixWorld.invert());
+                const localSpherical = new THREE.Spherical().setFromVector3(localPoint);
+
+                let lat = 90 - (localSpherical.phi * 180 / Math.PI);
+                let lon = (localSpherical.theta * 180 / Math.PI); 
+
+                // Correct longitude for texture offset usually present in ThreeJS primitives
+                // The standard sphere UV usually maps 0 to +z, need to check offset.
+                // Standard: lon needs +90 or similar correction. Let's try direct map first.
+                // Correction for standard Three.js sphere UVs
+                
+                // Better approach: Let's trust the UVs if simple math fails, but simple math:
+                // lat = 90 - phi_deg
+                // lon = theta_deg
+                // Note: Three.js sphere starts textures at specific point.
+                // Let's rely on standard mapping.
+                
+                showToast("جاري جلب الطقس للإحداثيات...", "info");
+                searchByCoords(lat, lon, true);
+            }
+        }
+
+
+        // --- 4. WEATHER LOGIC ---
+        
         window.locateUser = () => {
-            const btn = document.querySelector('.geo-btn');
-            btn.innerHTML = '⌛ جارٍ التحديد...';
-            
+            showToast("تحديد موقعك...", "info");
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        searchByCoords(latitude, longitude);
-                        btn.innerHTML = '📍 موقعي';
-                    },
-                    (error) => {
-                        alert("تعذر تحديد الموقع. يرجى تفعيل الـ GPS.");
-                        btn.innerHTML = '📍 موقعي';
-                    }
+                    (pos) => searchByCoords(pos.coords.latitude, pos.coords.longitude),
+                    () => showToast("تعذر تحديد الموقع. تأكد من تفعيل GPS", "error")
                 );
-            } else {
-                alert("المتصفح لا يدعم تحديد الموقع");
             }
         };
 
@@ -310,44 +400,49 @@
             if(!city) return;
             
             try {
+                showToast(`بحث عن: ${city}`, "info");
                 const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=ar&format=json`).then(r=>r.json());
                 if(!geo.results) throw new Error("Not Found");
                 searchByCoords(geo.results[0].latitude, geo.results[0].longitude);
-            } catch(e) { alert("لم يتم العثور على المدينة"); }
+            } catch(e) { 
+                showToast("لم يتم العثور على المدينة", "error"); 
+            }
         };
 
-        async function searchByCoords(lat, lon) {
+        async function searchByCoords(lat, lon, isClick = false) {
+            if(isFetching) return;
+            isFetching = true;
+
+            // Stop auto rotation temporarily for focus
+            controls.autoRotate = false;
+            setTimeout(() => controls.autoRotate = true, 10000);
+
             // Animation
             flyTo(lat, lon);
-            addPin(lat, lon);
+            addPulsePin(lat, lon);
 
-            // Fetch Data (Comprehensive)
-            // Including: Air Quality (AQI), UV, Pressure, Sunrise/Sunset
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m&daily=uv_index_max,sunrise,sunset&timezone=auto&air_quality=european_aqi`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
             
-            const res = await fetch(url).then(r=>r.json());
-            updateUI(res, lat, lon);
+            try {
+                const res = await fetch(url).then(r=>r.json());
+                updateUI(res, lat, lon, isClick);
+            } catch(e) {
+                showToast("خطأ في الاتصال", "error");
+            }
+            isFetching = false;
         }
 
-        function updateUI(data, lat, lon) {
+        function updateUI(data, lat, lon, isClick) {
             const cur = data.current;
-            const daily = data.daily;
-            const hourly = data.hourly;
             
-            // Show Panels
             document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
 
-            // Basic Info
-            const timezone = data.timezone;
-            const timeString = new Date().toLocaleTimeString('en-US', { timeZone: timezone, hour: '2-digit', minute:'2-digit' });
-            
-            // Reverse Geocoding for City Name (Simple display)
-            // Note: Open-Meteo gives timezone city, for better accuracy we usually need reverse geo API. 
-            // Here we format the timezone string for display.
-            const cityDisplay = data.timezone.split('/')[1].replace(/_/g, ' ');
-
+            // Text Info
+            const cityDisplay = isClick ? `إحداثيات محددة` : data.timezone.split('/')[1].replace(/_/g, ' ');
             document.getElementById('uiCity').innerText = cityDisplay;
-            document.getElementById('localTime').innerText = `التوقيت المحلي: ${timeString}`;
+            document.getElementById('coordsDisplay').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+            document.getElementById('localTime').innerText = new Date().toLocaleTimeString('en-US', { timeZone: data.timezone, hour:'2-digit', minute:'2-digit' });
+            
             document.getElementById('uiTemp').innerText = Math.round(cur.temperature_2m) + "°";
             document.getElementById('uiDesc').innerText = getWeatherText(cur.weather_code);
             document.getElementById('wIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
@@ -356,70 +451,144 @@
             document.getElementById('uiWind').innerText = cur.wind_speed_10m + " km/h";
             document.getElementById('uiHum').innerText = cur.relative_humidity_2m + "%";
             document.getElementById('uiPress').innerText = cur.surface_pressure + " hPa";
-            document.getElementById('uiVis').innerText = (cur.visibility / 1000).toFixed(1) + " km";
-            
-            // Extra
-            document.getElementById('uiUV').innerText = daily.uv_index_max[0];
-            
-            // AQI (If available in API call)
-            if(data.current.european_aqi) {
-                const aqi = data.current.european_aqi;
-                const aqiEl = document.getElementById('uiAQI');
-                aqiEl.innerText = aqi;
-                const box = document.getElementById('aqiBox');
-                if(aqi > 50) box.classList.add('bad'); else box.classList.remove('bad');
-            } else {
-                document.getElementById('uiAQI').innerText = "N/A";
-            }
+            document.getElementById('uiVis').innerText = (cur.visibility/1000).toFixed(1) + " km";
 
-            // Chart
-            updateChart(hourly);
+            // Chart & Forecast
+            updateChart(data.hourly);
+            updateForecast(data.daily);
 
-            // Day/Night Lighting
+            // Lighting based on local time of location
             if(cur.is_day === 1) {
                 sunLight.intensity = 2.5;
                 atmosphere.material.uniforms.glowColor.value.setHex(0x4facfe);
             } else {
-                sunLight.intensity = 0.2;
-                atmosphere.material.uniforms.glowColor.value.setHex(0x1a237e); // Night glow
+                sunLight.intensity = 0.1;
+                atmosphere.material.uniforms.glowColor.value.setHex(0x2a0a5e); // Deep purple night
             }
         }
 
-        // --- 4. HELPERS ---
+        function updateForecast(daily) {
+            const container = document.getElementById('forecastRow');
+            container.innerHTML = '';
+            
+            // Show 5 days
+            for(let i=0; i<5; i++) {
+                const date = new Date(daily.time[i]);
+                const dayName = date.toLocaleDateString('ar-EG', {weekday: 'short'});
+                const icon = getWeatherIcon(daily.weather_code[i], 1);
+                const max = Math.round(daily.temperature_2m_max[i]);
+                const min = Math.round(daily.temperature_2m_min[i]);
+
+                const div = document.createElement('div');
+                div.className = 'day-card';
+                div.innerHTML = `
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-icon">${icon}</div>
+                    <div class="day-temp">${max}° <span style="font-size:0.7em;color:#888">${min}°</span></div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        // --- 5. VOICE SEARCH ---
+        window.startVoice = () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!SpeechRecognition) {
+                showToast("المتصفح لا يدعم الأوامر الصوتية", "error");
+                return;
+            }
+
+            const rec = new SpeechRecognition();
+            rec.lang = 'ar-SA';
+            rec.start();
+            
+            const btn = document.getElementById('micBtn');
+            btn.classList.add('recording');
+            showToast("تحدث الآن...", "info");
+
+            rec.onresult = (e) => {
+                const txt = e.results[0][0].transcript.replace('.', '');
+                document.getElementById('cityInput').value = txt;
+                searchCity();
+                btn.classList.remove('recording');
+            };
+
+            rec.onerror = () => {
+                btn.classList.remove('recording');
+                showToast("لم أفهم، حاول مرة أخرى", "error");
+            };
+            
+            rec.onend = () => btn.classList.remove('recording');
+        };
+
+        // --- 6. VISUAL HELPERS ---
 
         function flyTo(lat, lon) {
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lon + 180) * (Math.PI / 180);
-            
-            // Rotate Earth
+            // Target rotation
             const targetX = lat * (Math.PI / 180);
             const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2);
 
+            // Smooth Tween
             new TWEEN.Tween(earthGroup.rotation)
                 .to({ x: targetX, y: targetY }, 1500)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
         }
 
-        function addPin(lat, lon) {
+        function addPulsePin(lat, lon) {
             if(pin) earthGroup.remove(pin);
             
-            // Calculate Position on Sphere
+            // Spherical to Cartesian
             const r = 5.05;
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
+            
             const x = -(r * Math.sin(phi) * Math.cos(theta));
             const y = r * Math.cos(phi);
             const z = r * Math.sin(phi) * Math.sin(theta);
 
-            // Pin Mesh
-            const geom = new THREE.ConeGeometry(0.1, 0.4, 8);
-            geom.rotateX(Math.PI/2);
-            const mat = new THREE.MeshBasicMaterial({color: 0xff0055});
-            pin = new THREE.Mesh(geom, mat);
+            // Create Pin Group
+            pin = new THREE.Group();
+            
+            // 1. The Stick
+            const stem = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.02, 0.5, 8),
+                new THREE.MeshBasicMaterial({color: 0xffffff})
+            );
+            stem.rotation.x = Math.PI/2;
+            stem.position.z = 0.25;
+            
+            // 2. The Head (Pulsing Sphere)
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 16, 16),
+                new THREE.MeshBasicMaterial({color: 0xff0055})
+            );
+            head.position.z = 0.5;
+
+            // 3. Pulse Ring
+            const ringGeo = new THREE.RingGeometry(0.1, 0.15, 32);
+            const ringMat = new THREE.MeshBasicMaterial({color: 0xff0055, side: THREE.DoubleSide, transparent:true});
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.z = 0.02;
+            ring.lookAt(0,0,0); // Flat on surface
+
+            pin.add(stem);
+            pin.add(head);
+            pin.add(ring);
+            
             pin.position.set(x, y, z);
             pin.lookAt(0,0,0);
             earthGroup.add(pin);
+
+            // Pulse Animation Loop
+            new TWEEN.Tween(ring.scale)
+                .to({x: 5, y: 5}, 1500)
+                .repeat(Infinity)
+                .start();
+            new TWEEN.Tween(ring.material)
+                .to({opacity: 0}, 1500)
+                .repeat(Infinity)
+                .start();
         }
 
         function updateChart(hourly) {
@@ -427,31 +596,35 @@
             if(chartInstance) chartInstance.destroy();
             
             const gradient = ctx.createLinearGradient(0,0,0,150);
-            gradient.addColorStop(0, 'rgba(79, 172, 254, 0.6)');
+            gradient.addColorStop(0, 'rgba(79, 172, 254, 0.5)');
             gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: hourly.time.slice(0, 24).map(t => t.slice(11, 16)),
+                    labels: hourly.time.slice(0, 12).map(t => t.slice(11, 16)),
                     datasets: [{
-                        data: hourly.temperature_2m.slice(0, 24),
+                        data: hourly.temperature_2m.slice(0, 12),
                         borderColor: '#4facfe',
                         backgroundColor: gradient,
-                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
+                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2, pointBackgroundColor: '#fff'
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { display: false } }
+                    scales: { 
+                        x: { display: true, ticks: {color: 'rgba(255,255,255,0.3)', font:{size:9}} }, 
+                        y: { display: false } 
+                    }
                 }
             });
         }
 
+        // --- UTILS ---
         function getWeatherText(code) {
-            const map = { 0:"صافٍ", 1:"غائم جزئياً", 2:"غائم", 3:"ملبد", 45:"ضباب", 51:"رذاذ", 61:"مطر", 71:"ثلوج", 95:"عاصفة" };
-            return map[code] || "معتدل";
+            const map = { 0:"سماء صافية", 1:"غائم جزئياً", 2:"غائم", 3:"ملبد بالغيوم", 45:"ضباب", 48:"ضباب جليدي", 51:"رذاذ خفيف", 53:"رذاذ متوسط", 55:"رذاذ كثيف", 61:"مطر خفيف", 63:"مطر متوسط", 65:"مطر غزير", 71:"ثلوج خفيفة", 73:"ثلوج متوسطة", 75:"ثلوج كثيفة", 95:"عاصفة رعدية" };
+            return map[code] || "متقلب";
         }
 
         function getWeatherIcon(code, isDay) {
@@ -460,31 +633,61 @@
             if(code <= 50) return "🌫️";
             if(code <= 67) return "🌧️";
             if(code <= 77) return "❄️";
-            return "⛈️";
+            return "⚡";
         }
 
-        // Loop
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            
+            // Animation trigger
+            requestAnimationFrame(() => toast.classList.add('show'));
+            
+            // Remove
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        // --- ANIMATION LOOP ---
         function animate(t) {
             requestAnimationFrame(animate);
             TWEEN.update(t);
             controls.update();
             
-            // Rotations
-            clouds.rotation.y += 0.00025; // Clouds move slightly faster
-            if(!pin) earthGroup.rotation.y += 0.0001; // Idle spin
+            // Rotate Clouds separately
+            clouds.rotation.y += 0.0003; 
             
-            // Atmosphere Shader Update
+            // Twinkle Stars
+            if(Math.random() > 0.9) {
+                stars.material.opacity = 0.5 + Math.random() * 0.5;
+            }
+
+            // Shader updates
             atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, atmosphere.position);
             
             renderer.render(scene, camera);
         }
         animate();
 
-        // Load remove
+        // Initial Load
         window.onload = () => {
-            setTimeout(() => document.getElementById('loader').style.opacity = 0, 1000);
-            setTimeout(() => document.getElementById('loader').remove(), 2000);
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = 0;
+                setTimeout(() => document.getElementById('loader').remove(), 800);
+            }, 1000);
         };
+        
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
     </script>
 </body>
