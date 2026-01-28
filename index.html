@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EARTH PRO | Ultimate Edition</title>
+    <title>EARTH PRO | Real-time Simulation</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
-
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;700;900&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -17,16 +16,25 @@
             --dark: #0a0a0a;
             --glass: rgba(15, 20, 35, 0.85);
             --border: rgba(255, 255, 255, 0.15);
-            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            --aqi-good: #00e400;
+            --aqi-mod: #ffff00;
+            --aqi-bad: #ff0000;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
         
         body { 
             background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; 
-            /* خلفية متدرجة لعمق أكبر */
-            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
+            background-image: radial-gradient(circle at 50% 50%, #111 0%, #000 100%);
         }
+
+        /* Weather Effects Overlay */
+        #fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0.6; mix-blend-mode: screen; }
+        .rain { background: url('https://i.imgur.com/VuT2g8X.png'); animation: rain 0.5s linear infinite; }
+        .snow { background: url('https://i.imgur.com/8R0TjqV.png'); animation: snow 10s linear infinite; }
+        @keyframes rain { 0% { background-position: 0 0; } 100% { background-position: 20% 100%; } }
+        @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
 
         /* Canvas */
         #canvas-container { position: absolute; inset: 0; z-index: 1; cursor: grab; }
@@ -52,7 +60,7 @@
         }
 
         .search-dock {
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(15px);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(15px);
             border: 1px solid var(--border); border-radius: 50px;
             padding: 5px 10px; display: flex; align-items: center; gap: 8px;
             transition: 0.3s; box-shadow: var(--shadow);
@@ -82,13 +90,9 @@
         }
         .panel.active { transform: translateY(0); opacity: 1; }
 
-        /* Left Side: Forecast & Chart */
+        /* Left Side */
         .left-col { display: flex; flex-direction: column; gap: 15px; width: 350px; }
-        
-        .forecast-row {
-            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;
-            scrollbar-width: none; /* Firefox */
-        }
+        .forecast-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
         .forecast-row::-webkit-scrollbar { display: none; }
         
         .day-card {
@@ -101,7 +105,7 @@
         .day-temp { font-size: 0.8rem; font-weight: bold; font-family: 'Exo 2'; }
 
         /* Right Side: Main Weather */
-        .weather-main { flex: 1; max-width: 450px; position: relative; overflow: hidden; }
+        .weather-main { flex: 1; max-width: 480px; position: relative; overflow: hidden; }
         .weather-main::after {
             content: ''; position: absolute; top:0; left:0; width: 100%; height: 4px;
             background: linear-gradient(90deg, var(--blue), var(--purple));
@@ -110,7 +114,9 @@
         .location-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         .city-name { font-size: 1.8rem; font-weight: 800; line-height: 1.2; }
         .coords-text { font-size: 0.7rem; color: #666; font-family: 'Exo 2'; margin-top: 5px; }
-        .date-time { font-size: 0.85rem; color: #bbb; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; }
+        .tags-row { display: flex; gap: 5px; margin-top:5px; }
+        .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; background: rgba(255,255,255,0.1); }
+        .aqi-tag { font-weight: bold; }
 
         .big-weather { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .temp-box { text-align: right; }
@@ -123,23 +129,19 @@
         .detail-label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 2px; }
         .detail-val { font-size: 0.95rem; font-weight: 700; font-family: 'Exo 2'; }
 
-        /* Toast Notification */
-        .toast-container {
-            position: fixed; top: 90px; right: 20px; z-index: 100;
-            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
-        }
+        /* Toast & Loader */
+        .toast-container { position: fixed; top: 90px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast {
             background: rgba(20, 20, 30, 0.95); border-right: 4px solid var(--blue);
             color: #fff; padding: 12px 20px; border-radius: 8px; min-width: 250px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: translateX(120%); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: translateX(120%); transition: 0.4s;
             font-size: 0.9rem; pointer-events: auto; display: flex; align-items: center; gap: 10px;
         }
         .toast.show { transform: translateX(0); }
         .toast.error { border-color: #ff4444; }
 
-        /* Loader */
-        .loader { position: fixed; inset: 0; background: #020202; z-index: 999; display: flex; justify-content: center; align-items: center; transition: opacity 0.8s; }
-        .loader-ring { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s infinite linear; }
+        .loader { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; transition: opacity 0.8s; }
+        .loader-ring { width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Responsive */
@@ -147,7 +149,6 @@
             .dashboard { flex-direction: column-reverse; align-items: stretch; }
             .left-col { width: 100%; display: none; }
             .weather-main { max-width: 100%; }
-            .temp-huge { font-size: 3.5rem; }
             .search-dock { width: 100%; }
             input { width: 100%; }
         }
@@ -166,9 +167,13 @@
 <body>
 
     <div class="loader" id="loader">
-        <div class="loader-ring"></div>
+        <div style="text-align:center">
+            <div class="loader-ring"></div>
+            <div style="margin-top:10px; font-family:'Exo 2'; letter-spacing:3px; font-size:0.8rem">INITIALIZING SYSTEM</div>
+        </div>
     </div>
 
+    <div id="fx-layer"></div>
     <div class="toast-container" id="toastContainer"></div>
 
     <div id="canvas-container"></div>
@@ -177,11 +182,11 @@
         <header>
             <div class="search-dock">
                 <button class="btn-icon" onclick="searchCity()">🔍</button>
-                <input type="text" id="cityInput" placeholder="اكتب المدينة أو انقر على الأرض..." onkeypress="if(event.key==='Enter') searchCity()">
+                <input type="text" id="cityInput" placeholder="اكتب المدينة أو انقر..." onkeypress="if(event.key==='Enter') searchCity()">
                 <button class="btn-icon" id="micBtn" onclick="startVoice()">🎤</button>
-                <button class="btn-icon" onclick="locateUser()" title="موقعي (GPS/IP)">📍</button>
+                <button class="btn-icon" onclick="locateUser()" title="موقعي (GPS)">📍</button>
             </div>
-            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v3</span></div>
+            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v4</span></div>
         </header>
 
         <div class="dashboard">
@@ -199,24 +204,27 @@
             <div class="panel weather-main" id="weatherPanel">
                 <div class="location-header">
                     <div>
-                        <div class="date-time" id="localTime">--:--</div>
+                        <div class="tags-row">
+                            <span class="tag" id="localTime">--:--</span>
+                            <span class="tag aqi-tag" id="aqiBadge" style="color:#aaa">AQI: --</span>
+                        </div>
                         <div class="coords-text" id="coordsDisplay">LAT: -- LON: --</div>
                     </div>
-                    <div class="city-name" id="uiCity">اختر موقعاً</div>
+                    <div class="city-name" id="uiCity">Earth View</div>
                 </div>
 
                 <div class="big-weather">
                     <div class="icon-huge" id="wIcon">🌍</div>
                     <div class="temp-box">
                         <div class="temp-huge" id="uiTemp">--°</div>
-                        <div class="weather-desc" id="uiDesc">نظام تفاعلي</div>
+                        <div class="weather-desc" id="uiDesc">نظام محاكاة</div>
                     </div>
                 </div>
 
                 <div class="grid-details">
                     <div class="detail-item"><span class="detail-label">الرياح</span><span class="detail-val" id="uiWind">--</span></div>
                     <div class="detail-item"><span class="detail-label">الرطوبة</span><span class="detail-val" id="uiHum">--</span></div>
-                    <div class="detail-item"><span class="detail-label">الضغط</span><span class="detail-val" id="uiPress">--</span></div>
+                    <div class="detail-item"><span class="detail-label">الأشعة UV</span><span class="detail-val" id="uiUV">--</span></div>
                     <div class="detail-item"><span class="detail-label">الرؤية</span><span class="detail-val" id="uiVis">--</span></div>
                 </div>
             </div>
@@ -228,13 +236,15 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import TWEEN from '@tweenjs/tween.js';
 
-        // --- GLOBAL VARIABLES ---
+        // --- GLOBAL STATE ---
         let pin = null;
         let chartInstance = null;
         let isFetching = false;
+        let sunGroup;
 
-        // --- 1. SCENE SETUP ---
+        // --- 1. ADVANCED SCENE SETUP ---
         const scene = new THREE.Scene();
+        // Dynamic FOV based on screen width
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 16;
 
@@ -242,48 +252,113 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.enablePan = false;
-        controls.minDistance = 6;
-        controls.maxDistance = 40;
+        controls.minDistance = 6.5;
+        controls.maxDistance = 50;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.8;
+        controls.autoRotateSpeed = 0.5;
 
-        // --- 2. EARTH OBJECTS & SHADERS (IMPROVED) ---
+        // --- 2. THE EARTH (CUSTOM SHADER MATERIAL) ---
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
 
         const texLoader = new THREE.TextureLoader();
+        
+        // Load High-Res Textures
+        const mapDay = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
+        const mapNight = texLoader.load('https://raw.githubusercontent.com/kyleredelinghuys/three-earth/master/src/img/earth_lights_2048.png'); // Black Marble
+        const mapNormal = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
+        const mapSpecular = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
+        const mapClouds = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
 
-        // Earth Surface (Standard Phong with Specular/Normal maps)
-        const earthGeo = new THREE.SphereGeometry(5, 64, 64);
-        const earthMat = new THREE.MeshPhongMaterial({
-            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
-            specularMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'),
-            normalMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
-            shininess: 15
+        // Custom Shader for Day/Night Cycle
+        // This mixes the Day texture and Night texture based on light direction
+        const earthUniforms = {
+            sunDirection: { value: new THREE.Vector3(1, 0, 0) },
+            dayTexture: { value: mapDay },
+            nightTexture: { value: mapNight },
+            normalMap: { value: mapNormal },
+            specularMap: { value: mapSpecular }
+        };
+
+        const earthMat = new THREE.ShaderMaterial({
+            uniforms: earthUniforms,
+            vertexShader: `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vSunDir;
+                uniform vec3 sunDirection;
+
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    vSunDir = normalize((viewMatrix * vec4(sunDirection, 0.0)).xyz);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D dayTexture;
+                uniform sampler2D nightTexture;
+                uniform sampler2D normalMap;
+                uniform sampler2D specularMap;
+                
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vSunDir;
+
+                void main() {
+                    vec3 dayColor = texture2D(dayTexture, vUv).rgb;
+                    vec3 nightColor = texture2D(nightTexture, vUv).rgb;
+                    vec3 normalColor = texture2D(normalMap, vUv).rgb * 2.0 - 1.0;
+                    float specularFactor = texture2D(specularMap, vUv).r;
+
+                    // Calculate light intensity
+                    // Simple dot product between normal and sun direction
+                    float intensity = max(dot(vNormal, vSunDir), 0.0);
+                    
+                    // Mix Day and Night based on intensity
+                    // Smoothstep makes the transition (terminator line) softer
+                    float mixVal = smoothstep(-0.2, 0.2, intensity);
+                    
+                    vec3 finalColor = mix(nightColor, dayColor * intensity, mixVal);
+
+                    // Add specular highlight only on day side and oceans
+                    if(intensity > 0.0) {
+                        vec3 halfVector = normalize(vSunDir + vec3(0,0,1)); // simplified view dir
+                        float NdotH = max(dot(vNormal, halfVector), 0.0);
+                        float specular = pow(NdotH, 32.0) * specularFactor * intensity;
+                        finalColor += vec3(0.5) * specular;
+                    }
+
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `
         });
+
+        const earthGeo = new THREE.SphereGeometry(5, 64, 64);
         const earth = new THREE.Mesh(earthGeo, earthMat);
         earthGroup.add(earth);
 
-        // Clouds (Rotating Layer)
-        const cloudMat = new THREE.MeshPhongMaterial({
-            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
-            transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        // Clouds (Separate Layer for depth)
+        const cloudMat = new THREE.MeshLambertMaterial({
+            map: mapClouds,
+            transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
         });
         const clouds = new THREE.Mesh(new THREE.SphereGeometry(5.08, 64, 64), cloudMat);
         earthGroup.add(clouds);
 
-        // Atmosphere Halo (ULTRA REALISTIC SHADER)
-        // This creates the glowing rim effect
+        // Atmosphere Glow (Enhanced)
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { 
-                c: { value: 0.6 }, 
-                p: { value: 4.0 }, 
+                c: { value: 0.5 }, 
+                p: { value: 4.5 }, 
                 glowColor: { value: new THREE.Color(0x4facfe) }, 
                 viewVector: { value: camera.position } 
             },
@@ -307,46 +382,108 @@
             `,
             side: THREE.BackSide,
             blending: THREE.AdditiveBlending,
-            transparent: true
+            transparent: true,
+            depthWrite: false
         });
-        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.35, 64, 64), atmosMat);
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.4, 64, 64), atmosMat);
         scene.add(atmosphere);
 
-        // Stars (Background)
+        // Stars
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 3500;
+        const starCount = 5000;
         const posArray = new Float32Array(starCount * 3);
-        const sizeArray = new Float32Array(starCount);
         for(let i=0; i<starCount; i++) {
-            posArray[i*3] = (Math.random()-0.5) * 800;
-            posArray[i*3+1] = (Math.random()-0.5) * 800;
-            posArray[i*3+2] = (Math.random()-0.5) * 800;
-            sizeArray[i] = Math.random();
+            posArray[i*3] = (Math.random()-0.5) * 900;
+            posArray[i*3+1] = (Math.random()-0.5) * 900;
+            posArray[i*3+2] = (Math.random()-0.5) * 900;
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        starGeo.setAttribute('size', new THREE.BufferAttribute(sizeArray, 1));
-        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.3, transparent: true, opacity: 0.8});
-        const stars = new THREE.Points(starGeo, starMat);
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.4, transparent: true, opacity: 0.8}));
         scene.add(stars);
 
-        // Lights
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
-        sunLight.position.set(20, 10, 20);
-        scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x404040, 0.4));
+        // --- 3. SUN LIGHT & POSITION LOGIC ---
+        // Sun Group to rotate sun around earth
+        sunGroup = new THREE.Group();
+        scene.add(sunGroup);
+        
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        sunLight.position.set(20, 0, 0); // Start at X axis
+        sunGroup.add(sunLight);
+        
+        // Simple Sun Visualizer
+        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshBasicMaterial({color: 0xffdd00}));
+        sunMesh.position.set(22, 0, 0);
+        sunGroup.add(sunMesh);
 
-        // --- 3. INTERACTION (RAYCASTER) ---
+        function updateSunPosition() {
+            // Calculate approximate sun angle based on UTC time
+            // This is a simplified model. 
+            // At 12:00 UTC, Sun is near Greenwhich (0 longitude). 
+            // Earth rotates, or Sun rotates around logic.
+            const now = new Date();
+            const utcHours = now.getUTCHours() + now.getUTCMinutes()/60;
+            
+            // 24 hours = 2PI radians. 
+            // Offset: Sun is at X+ at 12:00 UTC?? No, let's keep it simple:
+            // We rotate the Earth Group to match time, or rotate Sun.
+            // Let's rotate the Sun around the Earth.
+            // At 12 UTC, sun is roughly over longitude 0.
+            
+            const sunAngle = -((utcHours - 12) / 24) * Math.PI * 2;
+            sunGroup.rotation.y = sunAngle;
+            
+            // Update Uniform for shader
+            const sunDir = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0, sunAngle, 0));
+            earthMat.uniforms.sunDirection.value.copy(sunDir);
+        }
+        setInterval(updateSunPosition, 60000); // Update every minute
+        updateSunPosition();
+
+
+        // --- 4. INTERACTIVE HOTSPOTS (Capitals) ---
+        const cities = [
+            {n:"Mecca", lat:21.38, lon:39.85}, {n:"Cairo", lat:30.04, lon:31.23},
+            {n:"Dubai", lat:25.20, lon:55.27}, {n:"London", lat:51.50, lon:-0.12},
+            {n:"New York", lat:40.71, lon:-74.00}, {n:"Tokyo", lat:35.67, lon:139.65},
+            {n:"Paris", lat:48.85, lon:2.35}, {n:"Moscow", lat:55.75, lon:37.61},
+            {n:"Sydney", lat:-33.86, lon:151.20}, {n:"Riyadh", lat:24.71, lon:46.67},
+            {n:"Algiers", lat:36.75, lon:3.05}, {n:"Rabat", lat:34.02, lon:-6.83}
+        ];
+
+        const markersGroup = new THREE.Group();
+        earthGroup.add(markersGroup);
+
+        cities.forEach(city => {
+            const pos = latLonToVector3(city.lat, city.lon, 5.01);
+            const marker = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 8),
+                new THREE.MeshBasicMaterial({color: 0x00ffcc})
+            );
+            marker.position.copy(pos);
+            marker.userData = { isCity: true, ...city };
+            markersGroup.add(marker);
+            
+            // Glow ring
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(0.06, 0.07, 16),
+                new THREE.MeshBasicMaterial({color: 0x00ffcc, side: THREE.DoubleSide})
+            );
+            ring.position.copy(pos);
+            ring.lookAt(0,0,0);
+            markersGroup.add(ring);
+        });
+
+
+        // --- 5. INTERACTION ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-        let isDragging = false;
-        let startPos = {x:0, y:0};
+        let isDragging = false, startPos = {x:0,y:0};
 
         const canvas = document.getElementById('canvas-container');
-        
-        canvas.addEventListener('mousedown', (e) => { isDragging = false; startPos = {x: e.clientX, y: e.clientY}; });
-        canvas.addEventListener('mousemove', (e) => { if(Math.abs(e.clientX - startPos.x) > 5) isDragging = true; });
+        canvas.addEventListener('mousedown', (e) => { isDragging=false; startPos={x:e.clientX,y:e.clientY}; });
+        canvas.addEventListener('mousemove', (e) => { if(Math.abs(e.clientX-startPos.x)>5) isDragging=true; });
         canvas.addEventListener('mouseup', (e) => { if(!isDragging) onGlobeClick(e); });
-        canvas.addEventListener('touchstart', (e) => { isDragging = false; startPos = {x: e.touches[0].clientX, y: e.touches[0].clientY}; }, {passive: false});
+        canvas.addEventListener('touchstart', (e) => { isDragging=false; startPos={x:e.touches[0].clientX,y:e.touches[0].clientY}; }, {passive:false});
 
         function onGlobeClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
@@ -354,99 +491,95 @@
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(earth);
+            
+            // Check markers first
+            const intersectsMarkers = raycaster.intersectObjects(markersGroup.children);
+            if(intersectsMarkers.length > 0) {
+                const data = intersectsMarkers[0].object.userData;
+                if(data.isCity) {
+                    searchByCoords(data.lat, data.lon, true);
+                    return;
+                }
+            }
 
+            // Check Earth
+            const intersects = raycaster.intersectObject(earth);
             if (intersects.length > 0) {
                 const point = intersects[0].point;
-                // Inverse the group rotation to find static local point
                 const localPoint = point.clone().applyMatrix4(earthGroup.matrixWorld.invert());
-                const localSpherical = new THREE.Spherical().setFromVector3(localPoint);
-
-                let lat = 90 - (localSpherical.phi * 180 / Math.PI);
-                let lon = (localSpherical.theta * 180 / Math.PI); 
-
-                showToast("جاري جلب الطقس للإحداثيات...", "info");
+                const spherical = new THREE.Spherical().setFromVector3(localPoint);
+                const lat = 90 - (spherical.phi * 180 / Math.PI);
+                const lon = (spherical.theta * 180 / Math.PI); 
+                showToast("جاري تحليل المنطقة...", "info");
                 searchByCoords(lat, lon, true);
             }
         }
 
-
-        // --- 4. WEATHER LOGIC & SMART LOCATION ---
+        // --- 6. WEATHER LOGIC ---
         
-        // ** Improved Location Logic: GPS with IP Fallback **
         window.locateUser = () => {
             showToast("جاري تحديد الموقع...", "info");
-            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        searchByCoords(pos.coords.latitude, pos.coords.longitude);
-                    },
-                    (err) => {
-                        console.warn("GPS failed/denied. Falling back to IP...");
-                        fetchIPLocation();
-                    },
-                    { timeout: 5000 } // Wait 5s for GPS, then fallback
+                    (pos) => searchByCoords(pos.coords.latitude, pos.coords.longitude),
+                    () => fetchIPLocation()
                 );
-            } else {
-                fetchIPLocation();
-            }
+            } else fetchIPLocation();
         };
 
-        // Fallback function for IP Location
         async function fetchIPLocation() {
             try {
                 const res = await fetch('https://ipapi.co/json/').then(r => r.json());
-                showToast(`تم التحديد عبر الشبكة: ${res.city}`);
                 searchByCoords(res.latitude, res.longitude);
-            } catch(e) {
-                showToast("تعذر تحديد الموقع نهائياً", "error");
-            }
+            } catch(e) { showToast("فشل تحديد الموقع", "error"); }
         }
 
         window.searchCity = async () => {
             const city = document.getElementById('cityInput').value;
             if(!city) return;
-            
             try {
-                showToast(`بحث عن: ${city}`, "info");
+                showToast("بحث...", "info");
                 const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=ar&format=json`).then(r=>r.json());
                 if(!geo.results) throw new Error("Not Found");
                 searchByCoords(geo.results[0].latitude, geo.results[0].longitude);
-            } catch(e) { 
-                showToast("لم يتم العثور على المدينة", "error"); 
-            }
+            } catch(e) { showToast("مدينة غير موجودة", "error"); }
         };
 
         async function searchByCoords(lat, lon, isClick = false) {
             if(isFetching) return;
             isFetching = true;
-
             controls.autoRotate = false;
-            setTimeout(() => controls.autoRotate = true, 15000); // Pause rotation longer to view
-
-            // Animation
+            
             flyTo(lat, lon);
             addPulsePin(lat, lon);
 
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-            
+            // API: Forecast + Air Quality
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
+
             try {
-                const res = await fetch(url).then(r=>r.json());
-                updateUI(res, lat, lon, isClick);
+                const [weatherRes, aqiRes] = await Promise.all([
+                    fetch(url).then(r=>r.json()),
+                    fetch(aqiUrl).then(r=>r.json())
+                ]);
+                updateUI(weatherRes, aqiRes, lat, lon, isClick);
             } catch(e) {
-                showToast("خطأ في الاتصال", "error");
+                showToast("خطأ في جلب البيانات", "error");
             }
             isFetching = false;
+            setTimeout(() => controls.autoRotate = true, 20000);
         }
 
-        function updateUI(data, lat, lon, isClick) {
+        function updateUI(data, aqiData, lat, lon, isClick) {
             const cur = data.current;
-            
+            const daily = data.daily;
+            const aqi = aqiData.current ? aqiData.current.us_aqi : 0;
+
             document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
 
-            const cityDisplay = isClick ? `إحداثيات محددة` : data.timezone.split('/')[1].replace(/_/g, ' ');
-            document.getElementById('uiCity').innerText = cityDisplay;
+            // Text Data
+            const regionName = data.timezone.split('/')[1] || "Unknown";
+            document.getElementById('uiCity').innerText = regionName.replace(/_/g, ' ');
             document.getElementById('coordsDisplay').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
             document.getElementById('localTime').innerText = new Date().toLocaleTimeString('en-US', { timeZone: data.timezone, hour:'2-digit', minute:'2-digit' });
             
@@ -454,140 +587,91 @@
             document.getElementById('uiDesc').innerText = getWeatherText(cur.weather_code);
             document.getElementById('wIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
 
-            // Stats
+            // Details
             document.getElementById('uiWind').innerText = cur.wind_speed_10m + " km/h";
             document.getElementById('uiHum').innerText = cur.relative_humidity_2m + "%";
-            document.getElementById('uiPress').innerText = cur.surface_pressure + " hPa";
             document.getElementById('uiVis').innerText = (cur.visibility/1000).toFixed(1) + " km";
+            
+            // UV Index from hourly (approximate current hour)
+            const hourIndex = new Date().getHours();
+            const uv = data.hourly.uv_index[hourIndex] || 0;
+            document.getElementById('uiUV').innerText = uv.toFixed(1);
+
+            // AQI Badge
+            const aqiEl = document.getElementById('aqiBadge');
+            aqiEl.innerText = `AQI: ${aqi}`;
+            aqiEl.style.color = aqi < 50 ? 'var(--aqi-good)' : (aqi < 100 ? 'var(--aqi-mod)' : 'var(--aqi-bad)');
+
+            // Visual Effects Overlay
+            const fx = document.getElementById('fx-layer');
+            fx.className = '';
+            if([51,53,55,61,63,65,80,81,82].includes(cur.weather_code)) fx.className = 'rain';
+            if([71,73,75,85,86].includes(cur.weather_code)) fx.className = 'snow';
 
             // Chart & Forecast
             updateChart(data.hourly);
-            updateForecast(data.daily);
-
-            // Lighting based on local time of location
-            if(cur.is_day === 1) {
-                sunLight.intensity = 2.5;
-                atmosphere.material.uniforms.glowColor.value.setHex(0x4facfe);
-            } else {
-                sunLight.intensity = 0.2;
-                atmosphere.material.uniforms.glowColor.value.setHex(0x2a0a5e); // Deep purple night glow
-            }
+            updateForecast(daily);
         }
 
         function updateForecast(daily) {
             const container = document.getElementById('forecastRow');
             container.innerHTML = '';
-            
             for(let i=0; i<5; i++) {
                 const date = new Date(daily.time[i]);
                 const dayName = date.toLocaleDateString('ar-EG', {weekday: 'short'});
                 const icon = getWeatherIcon(daily.weather_code[i], 1);
                 const max = Math.round(daily.temperature_2m_max[i]);
-                const min = Math.round(daily.temperature_2m_min[i]);
-
                 const div = document.createElement('div');
                 div.className = 'day-card';
-                div.innerHTML = `
-                    <div class="day-name">${dayName}</div>
-                    <div class="day-icon">${icon}</div>
-                    <div class="day-temp">${max}° <span style="font-size:0.7em;color:#888">${min}°</span></div>
-                `;
+                div.innerHTML = `<div class="day-name">${dayName}</div><div class="day-icon">${icon}</div><div class="day-temp">${max}°</div>`;
                 container.appendChild(div);
             }
         }
 
-        // --- 5. VOICE SEARCH ---
-        window.startVoice = () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!SpeechRecognition) {
-                showToast("المتصفح لا يدعم الأوامر الصوتية", "error");
-                return;
-            }
-
-            const rec = new SpeechRecognition();
-            rec.lang = 'ar-SA';
-            rec.start();
-            
-            const btn = document.getElementById('micBtn');
-            btn.classList.add('recording');
-            showToast("تحدث الآن...", "info");
-
-            rec.onresult = (e) => {
-                const txt = e.results[0][0].transcript.replace('.', '');
-                document.getElementById('cityInput').value = txt;
-                searchCity();
-                btn.classList.remove('recording');
-            };
-
-            rec.onerror = () => {
-                btn.classList.remove('recording');
-                showToast("لم أفهم، حاول مرة أخرى", "error");
-            };
-            
-            rec.onend = () => btn.classList.remove('recording');
-        };
-
-        // --- 6. VISUAL HELPERS ---
+        // --- 7. HELPER FUNCTIONS ---
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            return new THREE.Vector3(x, y, z);
+        }
 
         function flyTo(lat, lon) {
             const targetX = lat * (Math.PI / 180);
             const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2);
-
-            new TWEEN.Tween(earthGroup.rotation)
-                .to({ x: targetX, y: targetY }, 1500)
-                .easing(TWEEN.Easing.Cubic.InOut)
-                .start();
+            new TWEEN.Tween(earthGroup.rotation).to({ x: targetX, y: targetY }, 1500).easing(TWEEN.Easing.Cubic.InOut).start();
         }
 
         function addPulsePin(lat, lon) {
             if(pin) earthGroup.remove(pin);
-            
-            const r = 5.05;
-            const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lon + 180) * (Math.PI / 180);
-            
-            const x = -(r * Math.sin(phi) * Math.cos(theta));
-            const y = r * Math.cos(phi);
-            const z = r * Math.sin(phi) * Math.sin(theta);
-
             pin = new THREE.Group();
-            
-            const stem = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.05, 0.02, 0.5, 8),
-                new THREE.MeshBasicMaterial({color: 0xffffff})
-            );
-            stem.rotation.x = Math.PI/2;
-            stem.position.z = 0.25;
-            
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.15, 16, 16),
-                new THREE.MeshBasicMaterial({color: 0xff0055})
-            );
-            head.position.z = 0.5;
-
-            const ringGeo = new THREE.RingGeometry(0.1, 0.15, 32);
-            const ringMat = new THREE.MeshBasicMaterial({color: 0xff0055, side: THREE.DoubleSide, transparent:true});
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.position.z = 0.02;
-            ring.lookAt(0,0,0);
-
-            pin.add(stem); pin.add(head); pin.add(ring);
-            pin.position.set(x, y, z);
+            const pos = latLonToVector3(lat, lon, 5.0);
+            pin.position.copy(pos);
             pin.lookAt(0,0,0);
+
+            // Pin Stem
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.01, 0.8, 8), new THREE.MeshBasicMaterial({color:0xff3366}));
+            stem.rotation.x = Math.PI/2; stem.position.z = 0.4;
+            
+            // Pulse Ring
+            const ring = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.15, 32), new THREE.MeshBasicMaterial({color:0xff3366, side:2, transparent:true}));
+            ring.position.z = 0.05; ring.rotation.x = 0; // Flat on surface relative to pin group
+            
+            pin.add(stem); pin.add(ring);
             earthGroup.add(pin);
 
-            // Continuous Pulse
-            new TWEEN.Tween(ring.scale).to({x: 5, y: 5}, 1500).repeat(Infinity).start();
-            new TWEEN.Tween(ring.material).to({opacity: 0}, 1500).repeat(Infinity).start();
+            new TWEEN.Tween(ring.scale).to({x:6,y:6}, 1500).repeat(Infinity).start();
+            new TWEEN.Tween(ring.material).to({opacity:0}, 1500).repeat(Infinity).start();
         }
 
         function updateChart(hourly) {
             const ctx = document.getElementById('weatherChart').getContext('2d');
             if(chartInstance) chartInstance.destroy();
-            
             const gradient = ctx.createLinearGradient(0,0,0,150);
             gradient.addColorStop(0, 'rgba(79, 172, 254, 0.5)');
-            gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
@@ -595,80 +679,55 @@
                     labels: hourly.time.slice(0, 12).map(t => t.slice(11, 16)),
                     datasets: [{
                         data: hourly.temperature_2m.slice(0, 12),
-                        borderColor: '#4facfe',
-                        backgroundColor: gradient,
-                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fff'
+                        borderColor: '#4facfe', backgroundColor: gradient, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { display: true, ticks: {color: 'rgba(255,255,255,0.3)', font:{size:9}}, grid: {display:false} }, 
-                        y: { display: false } 
-                    }
+                    plugins: { legend: false, tooltip: {mode: 'index', intersect: false} },
+                    scales: { x: { display:false }, y: { display:false } },
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
             });
         }
 
-        // --- UTILS ---
         function getWeatherText(code) {
-            const map = { 0:"سماء صافية", 1:"غائم جزئياً", 2:"غائم", 3:"ملبد بالغيوم", 45:"ضباب", 48:"ضباب جليدي", 51:"رذاذ خفيف", 53:"رذاذ متوسط", 55:"رذاذ كثيف", 61:"مطر خفيف", 63:"مطر متوسط", 65:"مطر غزير", 71:"ثلوج خفيفة", 73:"ثلوج متوسطة", 75:"ثلوج كثيفة", 95:"عاصفة رعدية" };
+            const map = { 0:"صافي", 1:"غائم جزئي", 3:"غائم", 45:"ضباب", 51:"رذاذ", 61:"مطر", 65:"مطر غزير", 71:"ثلوج", 95:"عاصفة" };
             return map[code] || "متقلب";
         }
-
-        function getWeatherIcon(code, isDay) {
-            if(code === 0) return isDay ? "☀️" : "🌙";
-            if(code <= 3) return "☁️";
-            if(code <= 50) return "🌫️";
-            if(code <= 67) return "🌧️";
-            if(code <= 77) return "❄️";
-            return "⚡";
+        function getWeatherIcon(c, d) {
+            if(c===0) return d?"☀️":"🌙"; if(c<=3) return "☁️"; if(c<=67) return "🌧️"; if(c<=77) return "❄️"; return "⚡";
+        }
+        function showToast(m, t='info') {
+            const c = document.getElementById('toastContainer');
+            const el = document.createElement('div'); el.className=`toast ${t}`; el.innerText=m;
+            c.appendChild(el); requestAnimationFrame(()=>el.classList.add('show'));
+            setTimeout(()=>{el.classList.remove('show'); setTimeout(()=>el.remove(),500)},3000);
         }
 
-        function showToast(msg, type='info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerText = msg;
-            container.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
-        }
+        // Voice
+        window.startVoice = () => {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!SR) return showToast("غير مدعوم", "error");
+            const r = new SR(); r.lang='ar-SA'; r.start();
+            const b = document.getElementById('micBtn'); b.classList.add('recording');
+            r.onresult = e => { document.getElementById('cityInput').value = e.results[0][0].transcript; searchCity(); b.classList.remove('recording'); };
+            r.onerror = () => b.classList.remove('recording');
+        };
 
-        // --- ANIMATION LOOP ---
+        // Loop
         function animate(t) {
             requestAnimationFrame(animate);
             TWEEN.update(t);
             controls.update();
-            clouds.rotation.y += 0.0003; 
-            
-            if(Math.random() > 0.9) stars.material.opacity = 0.5 + Math.random() * 0.5;
-
-            // Shader update for atmosphere glow direction
+            clouds.rotation.y += 0.0002;
             atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, atmosphere.position);
-            
             renderer.render(scene, camera);
         }
         animate();
 
-        // Initial Load
-        window.onload = () => {
-            setTimeout(() => {
-                document.getElementById('loader').style.opacity = 0;
-                setTimeout(() => document.getElementById('loader').remove(), 800);
-            }, 1000);
-        };
-        
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
+        window.onload = () => { setTimeout(() => document.getElementById('loader').style.opacity=0, 1000); setTimeout(()=>document.getElementById('loader').remove(), 1800); locateUser(); };
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
