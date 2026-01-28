@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EARTH SUPREME | Cast Ultimate</title>
+    <title>ALGERIA WEATHER | 3D Cast</title>
     
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇩🇿</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -13,18 +13,18 @@
 
     <style>
         :root {
-            --neon-blue: #00f3ff;
-            --neon-purple: #bc13fe;
-            --glass-bg: rgba(8, 12, 24, 0.85);
-            --border: rgba(255, 255, 255, 0.1);
-            --danger: #ff2a2a;
-            --safe: #00ff88;
+            --dz-green: #006233;
+            --dz-red: #D21034;
+            --neon-white: #f0f0f0;
+            --glass-bg: rgba(8, 24, 15, 0.85); /* Dark Green Tint */
+            --border: rgba(255, 255, 255, 0.15);
+            --accent: #00ff88;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
         
         body { 
-            background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; transition: background 1s;
+            background: #020503; overflow: hidden; height: 100vh; color: white; user-select: none; transition: background 1s;
         }
 
         /* Cinematic Overlays */
@@ -35,7 +35,7 @@
         @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
 
         /* Canvas */
-        #canvas-container { position: absolute; inset: 0; z-index: 1; cursor: grab; background: #000; }
+        #canvas-container { position: absolute; inset: 0; z-index: 1; cursor: grab; background: radial-gradient(circle at center, #0a1a10 0%, #000000 100%); }
         #canvas-container:active { cursor: grabbing; }
 
         /* UI Layer */
@@ -44,49 +44,52 @@
         /* Header */
         header { display: flex; justify-content: space-between; align-items: center; pointer-events: auto; width: 100%; z-index: 20; transition: transform 0.5s; }
         .brand { 
-            font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 2px;
-            background: linear-gradient(90deg, #fff, var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            font-family: 'Rajdhani', sans-serif; font-size: 1.5rem; font-weight: 900; letter-spacing: 1px;
+            display: flex; flex-direction: column; line-height: 1;
         }
+        .brand span:first-child { color: var(--neon-white); }
+        .brand span:last-child { color: var(--dz-red); letter-spacing: 4px; font-size: 0.9rem;}
 
         .search-dock {
             background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); border: 1px solid var(--border);
             border-radius: 50px; padding: 5px 8px; display: flex; align-items: center; gap: 5px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: 0.3s;
         }
-        .search-dock:focus-within { border-color: var(--neon-blue); box-shadow: 0 0 20px rgba(0, 243, 255, 0.3); }
+        .search-dock:focus-within { border-color: var(--dz-green); box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
 
         input { background: transparent; border: none; color: white; width: 180px; font-size: 1rem; text-align: right; padding: 5px; font-weight: 500; }
-        input::placeholder { color: rgba(255,255,255,0.4); }
+        input::placeholder { color: rgba(255,255,255,0.4); font-size: 0.9rem;}
         
         .btn-icon { 
             background: rgba(255,255,255,0.05); border: 1px solid transparent; color: white; cursor: pointer; 
             width:40px; height:40px; border-radius: 50%; transition: 0.2s; display:flex; align-items:center; justify-content:center; font-size: 1.1rem; 
         }
-        .btn-icon:hover { background: rgba(255,255,255,0.15); color: var(--neon-blue); transform: scale(1.05); }
-        .btn-icon.active { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
-        .recording { color: var(--danger); border-color: var(--danger); animation: pulse 1.5s infinite; }
+        .btn-icon:hover { background: rgba(255,255,255,0.15); color: var(--accent); transform: scale(1.05); }
+        .btn-icon.active { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent); }
+        .recording { color: var(--dz-red); border-color: var(--dz-red); animation: pulse 1.5s infinite; }
         
         /* Cast Specific Styles */
         .cast-connected { 
-            color: var(--safe) !important; 
-            border-color: var(--safe) !important;
-            box-shadow: 0 0 20px var(--safe);
+            color: var(--accent) !important; 
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 20px var(--accent);
+            animation: breathe 3s infinite;
         }
         
-        /* New Remote Control Panel for Cast */
+        /* Remote Control Panel */
         .cast-remote {
-            position: fixed; top: 80px; right: 20px;
-            background: rgba(0,0,0,0.8); border: 1px solid var(--safe);
-            border-radius: 15px; padding: 10px;
+            position: fixed; top: 90px; right: 20px;
+            background: rgba(10, 20, 10, 0.9); border: 1px solid var(--accent);
+            border-radius: 15px; padding: 15px;
             display: flex; flex-direction: column; gap: 10px;
             transform: translateX(200%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: auto; z-index: 50;
+            pointer-events: auto; z-index: 50; width: 60px; align-items: center;
         }
         .cast-remote.show { transform: translateX(0); }
-        .cast-status-text { font-size: 0.7rem; color: var(--safe); text-align: center; margin-bottom: 5px; font-family: 'Rajdhani'; }
+        .cast-status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); margin-bottom: 5px;}
 
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 42, 42, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 42, 42, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 42, 42, 0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(210, 16, 52, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(210, 16, 52, 0); } 100% { box-shadow: 0 0 0 0 rgba(210, 16, 52, 0); } }
+        @keyframes breathe { 0% { box-shadow: 0 0 10px var(--accent); } 50% { box-shadow: 0 0 25px var(--accent); } 100% { box-shadow: 0 0 10px var(--accent); } }
 
         /* Controls Side Bar */
         .controls { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; pointer-events: auto; transition: transform 0.5s; }
@@ -105,43 +108,43 @@
         /* Left Col */
         .left-col { width: 340px; display: flex; flex-direction: column; gap: 10px; }
         .chart-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; font-family: 'Rajdhani'; letter-spacing: 1px; }
-        .forecast-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
-        .forecast-row::-webkit-scrollbar { display: none; }
+        .forecast-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; direction: ltr; }
         .day-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px 5px; text-align: center; min-width: 60px; border: 1px solid rgba(255,255,255,0.02); }
-        .day-temp { font-family: 'Rajdhani'; font-weight: 700; margin-top: 5px; color: var(--neon-blue); }
+        .day-temp { font-family: 'Rajdhani'; font-weight: 700; margin-top: 5px; color: var(--accent); }
 
         /* Main Weather Card */
         .weather-main { flex: 1; max-width: 500px; position: relative; overflow: hidden; transition: all 0.8s ease-in-out; }
-        .weather-main::before { content: ''; position: absolute; top:0; left:0; width:4px; height:100%; background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple)); }
+        .weather-main::before { content: ''; position: absolute; top:0; right:0; width:4px; height:100%; background: linear-gradient(180deg, var(--dz-green), var(--dz-red)); }
         
         .city-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .city-name { font-size: 2rem; font-weight: 900; line-height: 1.1; margin-bottom: 5px; transition: font-size 0.5s; }
-        .city-meta { font-family: 'Rajdhani'; color: #888; font-size: 0.8rem; letter-spacing: 1px; display: flex; gap: 10px; }
+        .city-name { font-size: 2.2rem; font-weight: 900; line-height: 1.1; margin-bottom: 5px; transition: font-size 0.5s; color: white; }
+        .city-meta { font-family: 'Rajdhani'; color: #888; font-size: 0.8rem; letter-spacing: 1px; display: flex; gap: 10px; flex-direction: row-reverse; }
         
-        .weather-flex { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; }
-        .temp-huge { font-family: 'Rajdhani'; font-size: 4.5rem; font-weight: 700; line-height: 0.9; transition: font-size 0.5s; }
-        .desc-text { color: var(--neon-blue); font-size: 1.1rem; margin-top: 5px; }
+        .weather-flex { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; direction: ltr; }
+        .temp-huge { font-family: 'Rajdhani'; font-size: 4.5rem; font-weight: 700; line-height: 0.9; transition: font-size 0.5s; color: white;}
+        .desc-text { color: var(--accent); font-size: 1.2rem; margin-top: 5px; text-align: right; }
         .weather-icon { font-size: 4rem; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2)); transition: transform 0.5s; }
 
-        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; direction: ltr; }
         .stat-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; text-align: center; }
         .stat-label { font-size: 0.7rem; color: #aaa; display: block; margin-bottom: 3px; }
         .stat-val { font-family: 'Rajdhani'; font-weight: 700; font-size: 1rem; }
 
         /* Loader */
         .loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; transition: opacity 1s; }
-        .scan-line { width: 200px; height: 2px; background: var(--neon-blue); animation: scan 2s infinite ease-in-out; box-shadow: 0 0 20px var(--neon-blue); }
-        @keyframes scan { 0% { width:0; opacity:0; } 50% { width:200px; opacity:1; } 100% { width:0; opacity:0; } }
+        .dz-loader { width: 50px; height: 50px; border: 3px solid transparent; border-top-color: var(--dz-green); border-bottom-color: var(--dz-red); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* Responsive */
         @media (max-width: 800px) {
-            .dashboard { flex-direction: column-reverse; }
+            .dashboard { flex-direction: column-reverse; padding-bottom: 80px; }
             .left-col { display: none; }
             .weather-main { width: 100%; max-width: 100%; }
-            .search-dock { width: 100%; }
+            .search-dock { width: 100%; justify-content: space-between; }
             input { width: 100%; }
-            .controls { top: auto; bottom: 380px; right: 20px; flex-direction: row; }
-            .cast-remote { top: auto; bottom: 100px; right: 20px; }
+            .controls { top: auto; bottom: 20px; right: 50%; transform: translateX(50%); flex-direction: row; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 30px; border: 1px solid var(--border); }
+            .cast-remote { top: auto; bottom: 120px; right: 20px; }
+            .brand { display: none; } /* Hide brand on mobile to save space */
         }
     </style>
 
@@ -159,15 +162,15 @@
 
     <div class="loader" id="loader">
         <div style="text-align: center;">
-            <div class="scan-line"></div>
-            <div style="margin-top: 20px; font-family: 'Rajdhani'; letter-spacing: 5px; color: #888; font-size: 0.8rem;">SYSTEM LOADING</div>
+            <div class="dz-loader"></div>
+            <div style="margin-top: 20px; font-family: 'Rajdhani'; letter-spacing: 5px; color: #888; font-size: 0.8rem;">ALGERIA LOADING</div>
         </div>
     </div>
 
     <div class="cast-remote" id="castRemote">
-        <div class="cast-status-text">TV CONNECTED</div>
-        <button class="btn-icon" onclick="stopCast()" title="إيقاف البث" style="color: var(--danger); border-color: var(--danger)">⏹</button>
-        <button class="btn-icon" onclick="toggleMute()" title="كتم صوت التلفزيون">🔇</button>
+        <div class="cast-status-dot"></div>
+        <button class="btn-icon" onclick="stopCast()" title="إيقاف البث" style="color: var(--dz-red); border-color: var(--dz-red)">⏹</button>
+        <button class="btn-icon" onclick="forceUpdateTV()" title="تحديث التلفاز">🔄</button>
     </div>
 
     <div id="fx-layer"></div>
@@ -177,11 +180,13 @@
         <header>
             <div class="search-dock">
                 <button class="btn-icon" onclick="searchCity()">🔍</button>
-                <input type="text" id="cityInput" placeholder="ابحث عن مدينة..." onkeypress="if(event.key==='Enter') searchCity()">
+                <input type="text" id="cityInput" placeholder="ولاية أو مدينة جزائرية..." onkeypress="if(event.key==='Enter') searchCity()">
                 <button class="btn-icon" id="micBtn" onclick="toggleVoice()">🎙️</button>
-                <button class="btn-icon" onclick="locateUser()">📍</button>
             </div>
-            <div class="brand">EARTH <span style="color:var(--neon-blue)">SUPREME</span></div>
+            <div class="brand">
+                <span>ALGERIA</span>
+                <span>WEATHER</span>
+            </div>
         </header>
 
         <div class="controls">
@@ -191,16 +196,16 @@
                 </svg>
             </button>
 
-            <button class="btn-icon" id="tourBtn" onclick="toggleTour()" title="جولة حول العالم">✈️</button>
-            <button class="btn-icon" onclick="toggleHolo()" title="الوضع الهولوغرافي">🌐</button>
-            <button class="btn-icon" onclick="toggleTTS()" id="ttsBtn" title="قراءة الطقس">🔊</button>
+            <button class="btn-icon" id="tourBtn" onclick="toggleTour()" title="جولة في الولايات">🚌</button>
+            <button class="btn-icon" onclick="toggleHolo()" title="الرؤية الرقمية">🌐</button>
+            <button class="btn-icon" onclick="toggleTTS()" id="ttsBtn" title="المساعد الصوتي">🔊</button>
         </div>
 
         <div class="dashboard">
             <div class="panel left-col active">
                 <div class="chart-header">
-                    <span>HOURLY TREND</span>
-                    <span style="color:var(--neon-blue)">ECMWF AI</span>
+                    <span>توقعات الساعة</span>
+                    <span style="color:var(--accent)">ECMWF AI</span>
                 </div>
                 <div style="height: 100px; margin: 10px 0;">
                     <canvas id="weatherChart"></canvas>
@@ -211,34 +216,34 @@
             <div class="panel weather-main" id="weatherPanel">
                 <div class="city-header">
                     <div>
-                        <div class="city-name" id="uiCity">Orbit View</div>
+                        <div class="city-name" id="uiCity">الجزائر</div>
                         <div class="city-meta">
-                            <span id="uiCoords">0.00, 0.00</span>
-                            <span id="uiTime" style="color:var(--neon-blue)">--:--</span>
+                            <span id="uiCoords">28.00, 1.60</span>
+                            <span id="uiTime" style="color:var(--accent)">--:--</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="weather-flex">
-                    <div class="weather-icon" id="uiIcon">🌍</div>
-                    <div style="text-align: left;">
+                    <div class="weather-icon" id="uiIcon">🇩🇿</div>
+                    <div style="text-align: right;">
                         <div class="temp-huge" id="uiTemp">--°</div>
-                        <div class="desc-text" id="uiDesc">اختر موقعاً</div>
+                        <div class="desc-text" id="uiDesc">مرحباً بك في الجزائر</div>
                     </div>
                 </div>
 
                 <div class="details-grid">
                     <div class="stat-box">
-                        <span class="stat-label">WIND</span>
+                        <span class="stat-label">الرياح</span>
                         <span class="stat-val" id="uiWind">--</span>
                     </div>
                     <div class="stat-box">
-                        <span class="stat-label">HUMIDITY</span>
+                        <span class="stat-label">الرطوبة</span>
                         <span class="stat-val" id="uiHum">--</span>
                     </div>
                     <div class="stat-box">
-                        <span class="stat-label">UV INDEX</span>
-                        <span class="stat-val" id="uiUV" style="color:var(--neon-blue)">--</span>
+                        <span class="stat-label">UV مؤشر</span>
+                        <span class="stat-val" id="uiUV" style="color:var(--accent)">--</span>
                     </div>
                 </div>
             </div>
@@ -258,20 +263,24 @@
         let tourTimer = null;
         let ttsEnabled = false;
 
-        // Current Weather Data storage for Cast
+        // Start focused on Algeria (Center point approx)
+        const START_LAT = 28.0339;
+        const START_LON = 1.6596;
+
         let currentWeatherData = {
-            city: "Orbit View",
+            city: "الجزائر",
             temp: 0,
-            desc: "Waiting...",
-            code: 0
+            desc: "جاري التحميل...",
+            code: 0,
+            hum: 0,
+            wind: 0
         };
 
-        // Scene Objects
         let earth, clouds, atmosphere, stars, sunLight, sunSprite;
         let realisticMat, holoMat;
         let isHolo = false;
 
-        // --- 1. ADVANCED CAST IMPLEMENTATION ---
+        // --- 1. ENHANCED CAST IMPLEMENTATION FOR ALGERIA ---
         let castSession = null;
 
         window['__onGCastApiAvailable'] = function(isAvailable) {
@@ -299,15 +308,13 @@
                             castSession = event.session;
                             btn.classList.add('cast-connected');
                             remote.classList.add('show');
-                            speakText("تم الاتصال بالتلفزيون. جاري مزامنة الطقس.");
-                            // Immediately sync current weather to TV
+                            speakText("تم الاتصال بالتلفزيون");
                             syncToTV();
                             break;
                         case cast.framework.SessionState.SESSION_ENDED:
                             castSession = null;
                             btn.classList.remove('cast-connected');
                             remote.classList.remove('show');
-                            speakText("تم قطع الاتصال");
                             break;
                     }
                 }
@@ -315,9 +322,9 @@
         }
 
         window.requestCastSession = function() {
-            if(!window.cast) return alert("يرجى استخدام متصفح Chrome أو Edge");
+            if(!window.cast) return alert("يرجى استخدام متصفح Chrome");
             cast.framework.CastContext.getInstance().requestSession()
-                .catch(err => console.log('Cast Error:', err));
+                .catch(err => console.error('Cast Error:', err));
         };
 
         window.stopCast = function() {
@@ -326,54 +333,59 @@
             }
         };
 
-        window.toggleMute = function() {
-            if(!castSession) return;
-            const volume = castSession.getVolume();
-            volume.muted = !volume.muted;
-            castSession.setVolume(volume);
+        window.forceUpdateTV = function() {
+            if(castSession) {
+                syncToTV();
+                const btn = document.querySelector('.cast-remote button:nth-child(3)');
+                btn.style.transform = "rotate(360deg)";
+                setTimeout(()=> btn.style.transform = "none", 500);
+            }
         };
 
-        // The Core Magic: Sends a "Weather Card" to the TV
         function syncToTV() {
             if (!castSession) return;
 
-            // Define media based on weather code
-            // Using reliable high-res generic images for weather states
-            // You can replace these with video loops if you have direct MP4 links
-            let mediaUrl = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920&auto=format&fit=crop'; // Default Space
+            // Logic to pick a beautiful background image based on Algerian weather context
+            // Using Unsplash keywords for better relevance
             const code = currentWeatherData.code;
+            let query = "Algeria nature";
             
-            // Map codes to nice images
-            if (code <= 1) mediaUrl = 'https://images.unsplash.com/photo-1592210454359-9043f067919b?q=80&w=1920'; // Sunny
-            else if (code <= 3) mediaUrl = 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=1920'; // Cloudy
-            else if (code <= 45) mediaUrl = 'https://images.unsplash.com/photo-1487621167305-5d248087c724?q=80&w=1920'; // Fog
-            else if (code <= 67) mediaUrl = 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?q=80&w=1920'; // Rain
-            else if (code <= 77) mediaUrl = 'https://images.unsplash.com/photo-1478265868099-41669b5a5362?q=80&w=1920'; // Snow
-            else if (code >= 95) mediaUrl = 'https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28?q=80&w=1920'; // Thunder
+            if (code <= 1) query = "Sahara desert sunny";
+            else if (code <= 3) query = "Clouds over mountains";
+            else if (code <= 45) query = "Foggy forest";
+            else if (code <= 67) query = "Rain window view";
+            else if (code <= 77) query = "Snow mountain Algeria"; // For Chrea/Tikjda
+            else if (code >= 95) query = "Lightning storm";
 
-            const mediaInfo = new chrome.cast.media.MediaInfo(mediaUrl, 'image/jpeg');
+            // Add random seed to avoid caching same image
+            const mediaUrl = `https://source.unsplash.com/1920x1080/?${encodeURIComponent(query)}&sig=${Date.now()}`;
+            // Fallback since Source.unsplash is deprecated sometimes, using direct collection logic or generic
+            // Using specific curated visuals for reliability:
+            let bgImage = 'https://images.unsplash.com/photo-1548231086-64673295b9c0?q=80&w=1920'; // Algiers Generic
             
-            // Metadata appears on TV screen
+            // Dynamic Mapping
+            if(currentWeatherData.desc.includes("مطر")) bgImage = 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=1920';
+            else if(currentWeatherData.desc.includes("ثلوج")) bgImage = 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?q=80&w=1920';
+            else if(currentWeatherData.desc.includes("شمس") || currentWeatherData.desc.includes("صافية")) bgImage = 'https://images.unsplash.com/photo-1549309019-a1d77aeae74f?q=80&w=1920'; // Desert vibe
+            else bgImage = 'https://images.unsplash.com/photo-1584967918940-a7d51b064268?q=80&w=1920'; // Clouds
+
+            const mediaInfo = new chrome.cast.media.MediaInfo(bgImage, 'image/jpeg');
+            
             mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
-            mediaInfo.metadata.title = currentWeatherData.city; // Big Text
-            mediaInfo.metadata.subtitle = `${currentWeatherData.temp}°C | ${currentWeatherData.desc}`; // Small Text
-            // Force image display
-            mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+            mediaInfo.metadata.title = currentWeatherData.city; 
+            // Send rich data in subtitle
+            mediaInfo.metadata.subtitle = `${currentWeatherData.temp}°C  |  ${currentWeatherData.desc}  |  💨 ${currentWeatherData.wind} km/h`;
 
             const request = new chrome.cast.media.LoadRequest(mediaInfo);
             request.autoplay = true;
 
-            castSession.loadMedia(request).then(
-                function() { console.log('TV Updated Successfully'); },
-                function(errorCode) { console.log('TV Error Code:', errorCode); }
-            );
+            castSession.loadMedia(request).catch(e => console.log(e));
         }
 
-
-        // --- 2. THREE JS SETUP (Standard) ---
+        // --- 2. THREE JS SETUP ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 18;
+        camera.position.z = 20; // Slightly further back for better view
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -388,9 +400,9 @@
         controls.minDistance = 6.5;
         controls.maxDistance = 60;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+        controls.autoRotateSpeed = 0.8;
 
-        // --- 3. THE EARTH ---
+        // --- 3. THE EARTH (Algeria Centric Textures) ---
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
         const texLoader = new THREE.TextureLoader();
@@ -434,7 +446,10 @@
                     vec3 nightColor = texture2D(nightTexture, vUv).rgb;
                     float intensity = max(dot(vNormal, vSunDir), 0.0);
                     float mixVal = smoothstep(-0.2, 0.2, intensity);
+                    
+                    // Algeria Green tint enhancement
                     vec3 finalColor = mix(nightColor, dayColor * intensity, mixVal);
+                    
                     if(intensity > 0.0) {
                         float specularFactor = texture2D(specularMap, vUv).r;
                         vec3 halfVector = normalize(vSunDir + vec3(0,0,1));
@@ -448,7 +463,7 @@
         });
 
         holoMat = new THREE.MeshBasicMaterial({
-            color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.15
+            color: 0x00ff88, wireframe: true, transparent: true, opacity: 0.15
         });
 
         earth = new THREE.Mesh(new THREE.SphereGeometry(5, 64, 64), realisticMat);
@@ -461,7 +476,7 @@
         earthGroup.add(clouds);
 
         const atmosMat = new THREE.ShaderMaterial({
-            uniforms: { c: { value: 0.6 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(0x00aaff) }, viewVector: { value: camera.position } },
+            uniforms: { c: { value: 0.6 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(0x006233) }, viewVector: { value: camera.position } },
             vertexShader: `
                 uniform vec3 viewVector;
                 varying float intensity;
@@ -483,51 +498,26 @@
         scene.add(atmosphere);
 
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 6000;
+        const starCount = 8000;
         const posArray = new Float32Array(starCount * 3);
-        const colArray = new Float32Array(starCount * 3);
         for(let i=0; i<starCount; i++) {
             posArray[i*3] = (Math.random()-0.5) * 1500;
             posArray[i*3+1] = (Math.random()-0.5) * 1500;
             posArray[i*3+2] = (Math.random()-0.5) * 1500;
-            const c = new THREE.Color();
-            c.setHSL(Math.random() * 0.2 + 0.5, 0.8, Math.random() * 0.5 + 0.5);
-            colArray[i*3] = c.r; colArray[i*3+1] = c.g; colArray[i*3+2] = c.b;
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        starGeo.setAttribute('color', new THREE.BufferAttribute(colArray, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({vertexColors: true, size: 0.7, transparent: true, opacity: 0.8}));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff, size:0.5, transparent:true, opacity:0.8}));
         scene.add(stars);
 
-        const sunGroup = new THREE.Group();
-        scene.add(sunGroup);
-        sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-        sunLight.position.set(20, 0, 0);
-        sunGroup.add(sunLight);
+        // Position initial rotation to face Algeria roughly
+        // Algeria is roughly 28N, 2E. 
+        // ThreeJS rotation is tricky, we use a helper function to start there.
+        const startPhi = (90 - START_LAT) * (Math.PI / 180);
+        const startTheta = (START_LON + 90) * (Math.PI / 180);
+        // We set initial rotation inverse to look at it
+        earthGroup.rotation.y = -1 * (START_LON * (Math.PI/180)) - (Math.PI/2);
+        earthGroup.rotation.x = START_LAT * (Math.PI/180);
 
-        // Sun Sprite
-        const canvasSprite = document.createElement('canvas');
-        canvasSprite.width = 128; canvasSprite.height = 128;
-        const ctxS = canvasSprite.getContext('2d');
-        const grad = ctxS.createRadialGradient(64,64,0,64,64,64);
-        grad.addColorStop(0, 'rgba(255, 255, 200, 1)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctxS.fillStyle = grad; ctxS.fillRect(0,0,128,128);
-        const texSun = new THREE.CanvasTexture(canvasSprite);
-        sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texSun, blending: THREE.AdditiveBlending }));
-        sunSprite.scale.set(10, 10, 1);
-        sunSprite.position.set(22, 0, 0);
-        sunGroup.add(sunSprite);
-
-        function updateSun() {
-            const now = new Date();
-            const utc = now.getUTCHours() + now.getUTCMinutes()/60;
-            const angle = -((utc - 12) / 24) * Math.PI * 2;
-            sunGroup.rotation.y = angle;
-            const sunDir = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0, angle, 0));
-            if(!isHolo) realisticMat.uniforms.sunDirection.value.copy(sunDir);
-        }
-        setInterval(updateSun, 60000); updateSun();
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -552,22 +542,35 @@
                 const lat = 90 - (spherical.phi * 180 / Math.PI);
                 let lon = ((spherical.theta * 180 / Math.PI) - 90);
                 if(lon < -180) lon += 360; if(lon > 180) lon -= 360;
-                fetchLocationName(lat, lon);
-                searchByCoords(lat, lon, true);
+                
+                // Only allow clicks roughly within Algeria's bounds to keep it relevant
+                // Approx bounds: Lat 18 to 38, Lon -9 to 12
+                if(lat > 18 && lat < 38 && lon > -9 && lon < 12) {
+                    fetchLocationName(lat, lon);
+                    searchByCoords(lat, lon, true);
+                } else {
+                    document.getElementById('uiCity').innerText = "خارج النطاق";
+                    document.getElementById('uiDesc').innerText = "يرجى تحديد موقع في الجزائر";
+                }
             }
         }
 
         async function fetchLocationName(lat, lon) {
             try {
+                // Using BigDataCloud with Arabic language preference
                 const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ar`);
                 const data = await res.json();
-                let name = data.city || data.locality || data.principalSubdivision || data.countryName || "منطقة غير معروفة";
-                if(data.countryName && name !== data.countryName) name += `، ${data.countryName}`;
+                // Logic to display Algerian naming hierarchy
+                let name = data.locality || data.city || data.principalSubdivision || "صحراء الجزائر";
+                
+                // Clean up name
+                name = name.replace("Algeria", "").replace("الجزائر", "").trim();
+                if(name === "") name = "الجزائر";
+                
                 document.getElementById('uiCity').innerText = name;
                 document.getElementById('cityInput').value = name;
                 return name;
             } catch(e) { 
-                document.getElementById('uiCity').innerText = `Lat:${lat.toFixed(2)}`; 
                 return "موقع محدد";
             }
         }
@@ -577,12 +580,22 @@
             if(!q) return;
             if(isTouring) stopTour();
             try {
-                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1&language=ar&format=json`).then(r=>r.json());
+                // Strict filtering for Algeria (dz)
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=5&language=ar&format=json`).then(r=>r.json());
+                
                 if(!res.results) return alert("لم يتم العثور على المدينة");
-                const loc = res.results[0];
-                document.getElementById('uiCity').innerText = loc.name;
-                searchByCoords(loc.latitude, loc.longitude);
-            } catch(e) { alert("خطأ في البحث"); }
+                
+                // Filter specifically for Algeria
+                const dzLoc = res.results.find(r => r.country_code === 'DZ') || res.results[0];
+                
+                if(dzLoc.country_code !== 'DZ') {
+                    alert("نعتذر، البحث مخصص للمدن الجزائرية فقط.");
+                    return;
+                }
+
+                document.getElementById('uiCity').innerText = dzLoc.name;
+                searchByCoords(dzLoc.latitude, dzLoc.longitude);
+            } catch(e) { alert("خطأ في الاتصال"); }
         };
 
         async function searchByCoords(lat, lon, isClick=false) {
@@ -601,22 +614,23 @@
             const cur = data.current;
             const daily = data.daily;
             
-            // --- Update Data Store ---
             const weatherDesc = getWeatherText(cur.weather_code);
             const cityName = document.getElementById('uiCity').innerText;
             const temp = Math.round(cur.temperature_2m);
             
+            // Store data for casting
             currentWeatherData = {
                 city: cityName,
                 temp: temp,
                 desc: weatherDesc,
-                code: cur.weather_code
+                code: cur.weather_code,
+                wind: cur.wind_speed_10m,
+                hum: cur.relative_humidity_2m
             };
 
-            // --- Update DOM ---
             document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
             document.getElementById('uiCoords').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-            document.getElementById('uiTime').innerText = new Date().toLocaleTimeString('en-US', {timeZone: data.timezone, hour:'2-digit', minute:'2-digit', hour12:false});
+            document.getElementById('uiTime').innerText = new Date().toLocaleTimeString('ar-DZ', {timeZone: data.timezone, hour:'2-digit', minute:'2-digit'});
             document.getElementById('uiTemp').innerText = temp + "°";
             document.getElementById('uiDesc').innerText = weatherDesc;
             document.getElementById('uiIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
@@ -624,8 +638,10 @@
             document.getElementById('uiHum').innerText = cur.relative_humidity_2m + "%";
             document.getElementById('uiUV').innerText = daily.uv_index_max[0].toFixed(1);
             
-            // --- FX & 3D ---
+            // 3D Pin
             addSmartPin(lat, lon, cur.temperature_2m);
+            
+            // Weather Effects
             const fx = document.getElementById('fx-layer');
             fx.className = ''; fx.style.opacity = 0;
             if([51,53,55,61,63,65,80,81,82,95].includes(cur.weather_code)) { fx.className = 'rain'; fx.style.opacity = 0.6; }
@@ -634,12 +650,10 @@
             updateChart(data.hourly);
             updateForecast(daily);
             
-            if(ttsEnabled) speakText(`الطقس في ${cityName}. الحرارة ${temp}.`);
+            if(ttsEnabled) speakText(`الطقس في ${cityName}.. ${weatherDesc}.. ودرجة الحرارة ${temp}`);
 
-            // --- TRIGGER TV UPDATE IF CONNECTED ---
-            if(castSession) {
-                syncToTV();
-            }
+            // Update TV immediately
+            syncToTV();
         }
 
         function addSmartPin(lat, lon, temp) {
@@ -653,26 +667,39 @@
             const z = r * Math.sin(phi) * Math.sin(theta);
             pin.position.set(x,y,z);
             pin.lookAt(0,0,0);
-            let color = 0x00ff88;
-            if(temp > 30) color = 0xff2a2a;
-            if(temp < 10) color = 0x00f3ff;
-            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8, 8), new THREE.MeshBasicMaterial({color:color}));
-            stem.rotation.x = Math.PI/2; stem.position.z = 0.4;
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshBasicMaterial({color:color}));
-            head.position.z = 0.8;
-            const ring = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.15, 32), new THREE.MeshBasicMaterial({color:color, side:2, transparent:true}));
+            
+            let color = 0x00ff88; // Default
+            if(temp > 35) color = 0xff2a2a; // Hot
+            if(temp < 10) color = 0x00f3ff; // Cold
+            
+            // Pin Design
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 8), new THREE.MeshBasicMaterial({color:color}));
+            stem.rotation.x = Math.PI/2; stem.position.z = 0.6;
+            
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshBasicMaterial({color:color}));
+            head.position.z = 1.2;
+            
+            // Pulse Ring
+            const ring = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.2, 32), new THREE.MeshBasicMaterial({color:color, side:2, transparent:true}));
             ring.position.z = 0.05;
+            
             pin.add(stem); pin.add(head); pin.add(ring);
             earthGroup.add(pin);
-            new TWEEN.Tween(ring.scale).to({x:6,y:6}, 1500).repeat(Infinity).start();
+            
+            new TWEEN.Tween(ring.scale).to({x:5,y:5}, 1500).repeat(Infinity).start();
             new TWEEN.Tween(ring.material).to({opacity:0}, 1500).repeat(Infinity).start();
         }
 
+        // Algeria Tour List
         const tourCities = [
-            {n:"Mecca", lat:21.38, lon:39.85}, {n:"Tokyo", lat:35.67, lon:139.65},
-            {n:"New York", lat:40.71, lon:-74.00}, {n:"London", lat:51.50, lon:-0.12},
-            {n:"Paris", lat:48.85, lon:2.35}, {n:"Sydney", lat:-33.86, lon:151.20},
-            {n:"Cairo", lat:30.04, lon:31.23}
+            {n:"الجزائر العاصمة", lat:36.75, lon:3.05},
+            {n:"وهران", lat:35.69, lon:-0.63},
+            {n:"قسنطينة", lat:36.36, lon:6.61},
+            {n:"عنابة", lat:36.90, lon:7.76},
+            {n:"ورقلة", lat:31.95, lon:5.32},
+            {n:"تمنراست", lat:22.78, lon:5.52},
+            {n:"بشار", lat:31.62, lon:-2.22},
+            {n:"جانـت", lat:24.55, lon:9.48}
         ];
         let tourIdx = 0;
 
@@ -695,20 +722,21 @@
             document.getElementById('uiCity').innerText = city.n;
             searchByCoords(city.lat, city.lon);
             tourIdx = (tourIdx + 1) % tourCities.length;
-            tourTimer = setTimeout(runTourStep, 8000);
+            tourTimer = setTimeout(runTourStep, 10000); // 10 seconds per city
         }
 
         window.toggleTTS = () => {
             ttsEnabled = !ttsEnabled;
             document.getElementById('ttsBtn').classList.toggle('active');
-            if(ttsEnabled) speakText("نظام الصوت مفعل");
+            if(ttsEnabled) speakText("المرشد الصوتي مفعل");
         };
 
         function speakText(text) {
             if(!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'ar-SA';
+            u.lang = 'ar-DZ'; // Try Algerian accent if available, else Arabic
+            u.rate = 0.9;
             window.speechSynthesis.speak(u);
         }
 
@@ -717,38 +745,43 @@
             if(isHolo) {
                 earth.material = holoMat;
                 clouds.visible = false;
-                scene.fog = new THREE.FogExp2(0x000000, 0.005);
             } else {
                 earth.material = realisticMat;
                 clouds.visible = true;
-                scene.fog = null;
             }
         };
 
         function flyTo(lat, lon) {
             const tx = lat * (Math.PI/180);
             const ty = -1 * (lon * (Math.PI/180)) - (Math.PI/2);
-            new TWEEN.Tween(earthGroup.rotation).to({x:tx, y:ty}, 1500).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(earthGroup.rotation).to({x:tx, y:ty}, 2000).easing(TWEEN.Easing.Cubic.InOut).start();
         }
 
         function updateChart(hourly) {
             const ctx = document.getElementById('weatherChart').getContext('2d');
             if(chartInstance) chartInstance.destroy();
+            
+            // Green gradient for Algeria theme
             const gradient = ctx.createLinearGradient(0,0,0,100);
-            gradient.addColorStop(0, 'rgba(0, 243, 255, 0.5)');
+            gradient.addColorStop(0, 'rgba(0, 255, 136, 0.5)');
             gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: hourly.time.slice(0, 12).map(t => t.slice(11, 16)),
                     datasets: [{
                         data: hourly.temperature_2m.slice(0, 12),
-                        borderColor: '#00f3ff', backgroundColor: gradient, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
+                        borderColor: '#00ff88', backgroundColor: gradient, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: false }, scales: { x: {display:false}, y: {display:false} }
+                    plugins: { legend: false }, 
+                    scales: { 
+                        x: {display:false}, 
+                        y: {display:false} 
+                    }
                 }
             });
         }
@@ -757,43 +790,70 @@
             const c = document.getElementById('forecastRow'); c.innerHTML='';
             for(let i=0; i<5; i++){
                 const d = new Date(daily.time[i]);
-                const name = d.toLocaleDateString('ar-EG', {weekday:'short'});
+                const name = d.toLocaleDateString('ar-DZ', {weekday:'short'});
                 const icon = getWeatherIcon(daily.weather_code[i], 1);
                 const temp = Math.round(daily.temperature_2m_max[i]);
-                c.innerHTML += `<div class="day-card"><div style="font-size:0.7rem; color:#aaa">${name}</div><div style="font-size:1.2rem; margin:2px 0">${icon}</div><div class="day-temp">${temp}°</div></div>`;
+                c.innerHTML += `<div class="day-card"><div style="font-size:0.7rem; color:#aaa">${name}</div><div style="font-size:1.4rem; margin:5px 0">${icon}</div><div class="day-temp">${temp}°</div></div>`;
             }
         }
 
         function getWeatherText(c) {
-            const m = {0:"سماء صافية", 1:"غائم جزئي", 3:"غائم", 45:"ضباب", 61:"مطر خفيف", 63:"مطر", 71:"ثلوج", 95:"عاصفة رعدية"};
-            return m[c] || "متقلب";
+            const m = {
+                0:"سماء صافية", 1:"غائم جزئي", 2:"غائم جزئي", 3:"غائم كلي", 
+                45:"ضباب", 48:"ضباب جليدي",
+                51:"رذاذ خفيف", 53:"رذاذ متوسط", 55:"رذاذ كثيف",
+                61:"مطر خفيف", 63:"مطر متوسط", 65:"مطر غزير",
+                71:"ثلوج خفيفة", 73:"ثلوج متوسطة", 75:"ثلوج كثيفة",
+                80:"زخات مطر", 81:"زخات مطر قوية", 82:"عاصفة مطرية",
+                95:"عاصفة رعدية", 96:"رعد وبرد", 99:"عاصفة بردية شديدة"
+            };
+            return m[c] || "طقس متقلب";
         }
         function getWeatherIcon(c,d) {
-            if(c===0) return d?"☀️":"🌙"; if(c<=3) return "☁️"; if(c<=67) return "🌧️"; if(c<=77) return "❄️"; return "⚡";
+            if(c===0) return d?"☀️":"🌙"; 
+            if(c<=3) return d?"🌤️":"☁️"; 
+            if(c<=48) return "🌫️";
+            if(c<=67) return "🌧️"; 
+            if(c<=77) return "❄️"; 
+            if(c>=95) return "⚡";
+            return "🌥️";
         }
 
         function animate(t) {
             requestAnimationFrame(animate);
             TWEEN.update(t);
             controls.update();
-            clouds.rotation.y += 0.0003;
+            clouds.rotation.y += 0.0004;
             stars.rotation.y -= 0.0001;
             atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, atmosphere.position);
             renderer.render(scene, camera);
         }
         animate();
 
-        window.locateUser = () => { if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>searchByCoords(p.coords.latitude, p.coords.longitude)); };
+        // Start at Algeria (No Geolocation needed for this version, we want strict start)
+        window.onload = () => { 
+            setTimeout(()=>document.getElementById('loader').style.opacity=0, 1500); 
+            setTimeout(()=>document.getElementById('loader').remove(), 2500); 
+            // Default load Algiers
+            searchByCoords(36.75, 3.05);
+        };
+        
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+        // Voice
         window.toggleVoice = () => {
              const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-             if(!SR) return alert("غير مدعوم");
-             const r = new SR(); r.lang='ar-SA'; r.start();
+             if(!SR) return alert("المتصفح لا يدعم الصوت");
+             const r = new SR(); r.lang='ar-DZ'; r.start();
              document.getElementById('micBtn').classList.add('recording');
-             r.onresult = e => { document.getElementById('cityInput').value = e.results[0][0].transcript; searchCity(); document.getElementById('micBtn').classList.remove('recording'); };
+             r.onresult = e => { 
+                 document.getElementById('cityInput').value = e.results[0][0].transcript; 
+                 searchCity(); 
+                 document.getElementById('micBtn').classList.remove('recording'); 
+            };
+            r.onend = () => document.getElementById('micBtn').classList.remove('recording');
         };
 
-        window.onload = () => { setTimeout(()=>document.getElementById('loader').style.opacity=0, 1500); setTimeout(()=>document.getElementById('loader').remove(), 2500); window.locateUser(); };
-        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
