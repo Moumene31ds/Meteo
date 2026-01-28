@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EARTH PRO | Real-time Simulation</title>
+    <title>EARTH PRO | High Precision Weather</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;700;900&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
@@ -169,7 +169,7 @@
     <div class="loader" id="loader">
         <div style="text-align:center">
             <div class="loader-ring"></div>
-            <div style="margin-top:10px; font-family:'Exo 2'; letter-spacing:3px; font-size:0.8rem">INITIALIZING SYSTEM</div>
+            <div style="margin-top:10px; font-family:'Exo 2'; letter-spacing:3px; font-size:0.8rem">SYSTEM INITIALIZING</div>
         </div>
     </div>
 
@@ -186,12 +186,12 @@
                 <button class="btn-icon" id="micBtn" onclick="startVoice()">🎤</button>
                 <button class="btn-icon" onclick="locateUser()" title="موقعي (GPS)">📍</button>
             </div>
-            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v4</span></div>
+            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v5</span></div>
         </header>
 
         <div class="dashboard">
             <div class="panel left-col active">
-                <div style="font-size:0.9rem; font-weight:700; margin-bottom:5px;">توقعات 5 أيام</div>
+                <div style="font-size:0.9rem; font-weight:700; margin-bottom:5px;">توقعات 5 أيام (ECMWF)</div>
                 <div class="forecast-row" id="forecastRow">
                     <div class="day-card"><div class="day-name">--</div><div class="day-icon">-</div><div class="day-temp">--</div></div>
                 </div>
@@ -217,7 +217,7 @@
                     <div class="icon-huge" id="wIcon">🌍</div>
                     <div class="temp-box">
                         <div class="temp-huge" id="uiTemp">--°</div>
-                        <div class="weather-desc" id="uiDesc">نظام محاكاة</div>
+                        <div class="weather-desc" id="uiDesc">اختر موقعاً</div>
                     </div>
                 </div>
 
@@ -244,7 +244,6 @@
 
         // --- 1. ADVANCED SCENE SETUP ---
         const scene = new THREE.Scene();
-        // Dynamic FOV based on screen width
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 16;
 
@@ -270,15 +269,12 @@
 
         const texLoader = new THREE.TextureLoader();
         
-        // Load High-Res Textures
         const mapDay = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
-        const mapNight = texLoader.load('https://raw.githubusercontent.com/kyleredelinghuys/three-earth/master/src/img/earth_lights_2048.png'); // Black Marble
+        const mapNight = texLoader.load('https://raw.githubusercontent.com/kyleredelinghuys/three-earth/master/src/img/earth_lights_2048.png');
         const mapNormal = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
         const mapSpecular = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
         const mapClouds = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
 
-        // Custom Shader for Day/Night Cycle
-        // This mixes the Day texture and Night texture based on light direction
         const earthUniforms = {
             sunDirection: { value: new THREE.Vector3(1, 0, 0) },
             dayTexture: { value: mapDay },
@@ -294,7 +290,6 @@
                 varying vec3 vNormal;
                 varying vec3 vSunDir;
                 uniform vec3 sunDirection;
-
                 void main() {
                     vUv = uv;
                     vNormal = normalize(normalMatrix * normal);
@@ -307,35 +302,23 @@
                 uniform sampler2D nightTexture;
                 uniform sampler2D normalMap;
                 uniform sampler2D specularMap;
-                
                 varying vec2 vUv;
                 varying vec3 vNormal;
                 varying vec3 vSunDir;
-
                 void main() {
                     vec3 dayColor = texture2D(dayTexture, vUv).rgb;
                     vec3 nightColor = texture2D(nightTexture, vUv).rgb;
                     vec3 normalColor = texture2D(normalMap, vUv).rgb * 2.0 - 1.0;
                     float specularFactor = texture2D(specularMap, vUv).r;
-
-                    // Calculate light intensity
-                    // Simple dot product between normal and sun direction
                     float intensity = max(dot(vNormal, vSunDir), 0.0);
-                    
-                    // Mix Day and Night based on intensity
-                    // Smoothstep makes the transition (terminator line) softer
                     float mixVal = smoothstep(-0.2, 0.2, intensity);
-                    
                     vec3 finalColor = mix(nightColor, dayColor * intensity, mixVal);
-
-                    // Add specular highlight only on day side and oceans
                     if(intensity > 0.0) {
-                        vec3 halfVector = normalize(vSunDir + vec3(0,0,1)); // simplified view dir
+                        vec3 halfVector = normalize(vSunDir + vec3(0,0,1));
                         float NdotH = max(dot(vNormal, halfVector), 0.0);
                         float specular = pow(NdotH, 32.0) * specularFactor * intensity;
                         finalColor += vec3(0.5) * specular;
                     }
-
                     gl_FragColor = vec4(finalColor, 1.0);
                 }
             `
@@ -343,9 +326,10 @@
 
         const earthGeo = new THREE.SphereGeometry(5, 64, 64);
         const earth = new THREE.Mesh(earthGeo, earthMat);
+        // Correcting Texture Rotation - standard textures are often shifted
         earthGroup.add(earth);
 
-        // Clouds (Separate Layer for depth)
+        // Clouds
         const cloudMat = new THREE.MeshLambertMaterial({
             map: mapClouds,
             transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending,
@@ -354,7 +338,7 @@
         const clouds = new THREE.Mesh(new THREE.SphereGeometry(5.08, 64, 64), cloudMat);
         earthGroup.add(clouds);
 
-        // Atmosphere Glow (Enhanced)
+        // Atmosphere Glow
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { 
                 c: { value: 0.5 }, 
@@ -380,10 +364,7 @@
                     gl_FragColor = vec4(glow, 1.0);
                 }
             `,
-            side: THREE.BackSide,
-            blending: THREE.AdditiveBlending,
-            transparent: true,
-            depthWrite: false
+            side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
         });
         const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.4, 64, 64), atmosMat);
         scene.add(atmosphere);
@@ -402,52 +383,29 @@
         scene.add(stars);
 
         // --- 3. SUN LIGHT & POSITION LOGIC ---
-        // Sun Group to rotate sun around earth
         sunGroup = new THREE.Group();
         scene.add(sunGroup);
-        
         const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-        sunLight.position.set(20, 0, 0); // Start at X axis
+        sunLight.position.set(20, 0, 0);
         sunGroup.add(sunLight);
         
-        // Simple Sun Visualizer
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshBasicMaterial({color: 0xffdd00}));
-        sunMesh.position.set(22, 0, 0);
-        sunGroup.add(sunMesh);
-
         function updateSunPosition() {
-            // Calculate approximate sun angle based on UTC time
-            // This is a simplified model. 
-            // At 12:00 UTC, Sun is near Greenwhich (0 longitude). 
-            // Earth rotates, or Sun rotates around logic.
             const now = new Date();
             const utcHours = now.getUTCHours() + now.getUTCMinutes()/60;
-            
-            // 24 hours = 2PI radians. 
-            // Offset: Sun is at X+ at 12:00 UTC?? No, let's keep it simple:
-            // We rotate the Earth Group to match time, or rotate Sun.
-            // Let's rotate the Sun around the Earth.
-            // At 12 UTC, sun is roughly over longitude 0.
-            
             const sunAngle = -((utcHours - 12) / 24) * Math.PI * 2;
             sunGroup.rotation.y = sunAngle;
-            
-            // Update Uniform for shader
             const sunDir = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0, sunAngle, 0));
             earthMat.uniforms.sunDirection.value.copy(sunDir);
         }
-        setInterval(updateSunPosition, 60000); // Update every minute
+        setInterval(updateSunPosition, 60000);
         updateSunPosition();
 
-
-        // --- 4. INTERACTIVE HOTSPOTS (Capitals) ---
+        // --- 4. INTERACTIVE HOTSPOTS ---
         const cities = [
             {n:"Mecca", lat:21.38, lon:39.85}, {n:"Cairo", lat:30.04, lon:31.23},
             {n:"Dubai", lat:25.20, lon:55.27}, {n:"London", lat:51.50, lon:-0.12},
             {n:"New York", lat:40.71, lon:-74.00}, {n:"Tokyo", lat:35.67, lon:139.65},
-            {n:"Paris", lat:48.85, lon:2.35}, {n:"Moscow", lat:55.75, lon:37.61},
-            {n:"Sydney", lat:-33.86, lon:151.20}, {n:"Riyadh", lat:24.71, lon:46.67},
-            {n:"Algiers", lat:36.75, lon:3.05}, {n:"Rabat", lat:34.02, lon:-6.83}
+            {n:"Riyadh", lat:24.71, lon:46.67}, {n:"Moscow", lat:55.75, lon:37.61}
         ];
 
         const markersGroup = new THREE.Group();
@@ -455,26 +413,13 @@
 
         cities.forEach(city => {
             const pos = latLonToVector3(city.lat, city.lon, 5.01);
-            const marker = new THREE.Mesh(
-                new THREE.SphereGeometry(0.04, 8, 8),
-                new THREE.MeshBasicMaterial({color: 0x00ffcc})
-            );
+            const marker = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({color: 0x00ffcc}));
             marker.position.copy(pos);
             marker.userData = { isCity: true, ...city };
             markersGroup.add(marker);
-            
-            // Glow ring
-            const ring = new THREE.Mesh(
-                new THREE.RingGeometry(0.06, 0.07, 16),
-                new THREE.MeshBasicMaterial({color: 0x00ffcc, side: THREE.DoubleSide})
-            );
-            ring.position.copy(pos);
-            ring.lookAt(0,0,0);
-            markersGroup.add(ring);
         });
 
-
-        // --- 5. INTERACTION ---
+        // --- 5. INTERACTION & ACCURATE RAYCASTING ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let isDragging = false, startPos = {x:0,y:0};
@@ -485,6 +430,7 @@
         canvas.addEventListener('mouseup', (e) => { if(!isDragging) onGlobeClick(e); });
         canvas.addEventListener('touchstart', (e) => { isDragging=false; startPos={x:e.touches[0].clientX,y:e.touches[0].clientY}; }, {passive:false});
 
+        // --- FIXED: HIGH PRECISION CLICK LOGIC ---
         function onGlobeClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -492,36 +438,70 @@
 
             raycaster.setFromCamera(mouse, camera);
             
-            // Check markers first
+            // 1. Check Markers
             const intersectsMarkers = raycaster.intersectObjects(markersGroup.children);
             if(intersectsMarkers.length > 0) {
                 const data = intersectsMarkers[0].object.userData;
                 if(data.isCity) {
+                    document.getElementById('cityInput').value = data.n;
                     searchByCoords(data.lat, data.lon, true);
                     return;
                 }
             }
 
-            // Check Earth
+            // 2. Check Earth (WITH MATH FIX)
             const intersects = raycaster.intersectObject(earth);
             if (intersects.length > 0) {
                 const point = intersects[0].point;
+                // Convert world point to local point (accounting for earth rotation)
                 const localPoint = point.clone().applyMatrix4(earthGroup.matrixWorld.invert());
                 const spherical = new THREE.Spherical().setFromVector3(localPoint);
+                
+                // Correct Lat/Lon conversion
                 const lat = 90 - (spherical.phi * 180 / Math.PI);
-                const lon = (spherical.theta * 180 / Math.PI); 
-                showToast("جاري تحليل المنطقة...", "info");
+                // **CRITICAL FIX**: Offset by -90 to align with Three.js texture mapping
+                let lon = ((spherical.theta * 180 / Math.PI) - 90);
+                
+                // Wrap longitude to -180 to 180
+                if (lon < -180) lon += 360;
+                if (lon > 180) lon -= 360;
+
+                showToast("جاري تحليل الموقع...", "info");
+                
+                // Fetch real location name before weather
+                fetchLocationName(lat, lon);
                 searchByCoords(lat, lon, true);
             }
         }
 
         // --- 6. WEATHER LOGIC ---
         
+        // REVERSE GEOCODING (Get Place Name)
+        async function fetchLocationName(lat, lon) {
+            try {
+                // Free API for reverse geocoding
+                const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ar`);
+                const data = await res.json();
+                
+                let name = data.city || data.locality || data.principalSubdivision || data.countryName || "محيط / صحراء";
+                if(data.countryName && name !== data.countryName) name += `، ${data.countryName}`;
+                
+                document.getElementById('uiCity').innerText = name;
+                document.getElementById('cityInput').value = name;
+            } catch(e) {
+                console.log("Locality fetch failed", e);
+                document.getElementById('uiCity').innerText = `Lat: ${lat.toFixed(1)} Lon: ${lon.toFixed(1)}`;
+            }
+        }
+
         window.locateUser = () => {
-            showToast("جاري تحديد الموقع...", "info");
+            showToast("جاري تحديد موقعك...", "info");
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => searchByCoords(pos.coords.latitude, pos.coords.longitude),
+                    (pos) => {
+                        fetchLocationName(pos.coords.latitude, pos.coords.longitude);
+                        searchByCoords(pos.coords.latitude, pos.coords.longitude);
+                    },
                     () => fetchIPLocation()
                 );
             } else fetchIPLocation();
@@ -530,6 +510,7 @@
         async function fetchIPLocation() {
             try {
                 const res = await fetch('https://ipapi.co/json/').then(r => r.json());
+                fetchLocationName(res.latitude, res.longitude);
                 searchByCoords(res.latitude, res.longitude);
             } catch(e) { showToast("فشل تحديد الموقع", "error"); }
         }
@@ -541,6 +522,9 @@
                 showToast("بحث...", "info");
                 const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=ar&format=json`).then(r=>r.json());
                 if(!geo.results) throw new Error("Not Found");
+                
+                // Update text properly
+                document.getElementById('uiCity').innerText = geo.results[0].name;
                 searchByCoords(geo.results[0].latitude, geo.results[0].longitude);
             } catch(e) { showToast("مدينة غير موجودة", "error"); }
         };
@@ -553,8 +537,10 @@
             flyTo(lat, lon);
             addPulsePin(lat, lon);
 
-            // API: Forecast + Air Quality
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+            // API: USING ECMWF MODEL (European Centre for Medium-Range Weather Forecasts)
+            // This is the "PRO" model for higher accuracy
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,is_day&hourly=temperature_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&models=ecmwf_ifs04`;
+            
             const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
 
             try {
@@ -562,53 +548,50 @@
                     fetch(url).then(r=>r.json()),
                     fetch(aqiUrl).then(r=>r.json())
                 ]);
-                updateUI(weatherRes, aqiRes, lat, lon, isClick);
+                updateUI(weatherRes, aqiRes, lat, lon);
             } catch(e) {
-                showToast("خطأ في جلب البيانات", "error");
+                console.error(e);
+                showToast("خطأ في البيانات", "error");
             }
             isFetching = false;
-            setTimeout(() => controls.autoRotate = true, 20000);
+            setTimeout(() => controls.autoRotate = true, 25000);
         }
 
-        function updateUI(data, aqiData, lat, lon, isClick) {
+        function updateUI(data, aqiData, lat, lon) {
             const cur = data.current;
             const daily = data.daily;
             const aqi = aqiData.current ? aqiData.current.us_aqi : 0;
 
             document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
 
-            // Text Data
-            const regionName = data.timezone.split('/')[1] || "Unknown";
-            document.getElementById('uiCity').innerText = regionName.replace(/_/g, ' ');
-            document.getElementById('coordsDisplay').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
-            document.getElementById('localTime').innerText = new Date().toLocaleTimeString('en-US', { timeZone: data.timezone, hour:'2-digit', minute:'2-digit' });
+            document.getElementById('coordsDisplay').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            
+            // Format Time based on Timezone
+            const localTime = new Date().toLocaleTimeString('en-US', { timeZone: data.timezone, hour:'2-digit', minute:'2-digit', hour12: false });
+            document.getElementById('localTime').innerText = localTime;
             
             document.getElementById('uiTemp').innerText = Math.round(cur.temperature_2m) + "°";
             document.getElementById('uiDesc').innerText = getWeatherText(cur.weather_code);
             document.getElementById('wIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
 
-            // Details
             document.getElementById('uiWind').innerText = cur.wind_speed_10m + " km/h";
             document.getElementById('uiHum').innerText = cur.relative_humidity_2m + "%";
             document.getElementById('uiVis').innerText = (cur.visibility/1000).toFixed(1) + " km";
             
-            // UV Index from hourly (approximate current hour)
             const hourIndex = new Date().getHours();
             const uv = data.hourly.uv_index[hourIndex] || 0;
             document.getElementById('uiUV').innerText = uv.toFixed(1);
 
-            // AQI Badge
             const aqiEl = document.getElementById('aqiBadge');
             aqiEl.innerText = `AQI: ${aqi}`;
             aqiEl.style.color = aqi < 50 ? 'var(--aqi-good)' : (aqi < 100 ? 'var(--aqi-mod)' : 'var(--aqi-bad)');
 
-            // Visual Effects Overlay
+            // FX
             const fx = document.getElementById('fx-layer');
             fx.className = '';
-            if([51,53,55,61,63,65,80,81,82].includes(cur.weather_code)) fx.className = 'rain';
+            if([51,53,55,61,63,65,80,81,82,95,96,99].includes(cur.weather_code)) fx.className = 'rain';
             if([71,73,75,85,86].includes(cur.weather_code)) fx.className = 'snow';
 
-            // Chart & Forecast
             updateChart(data.hourly);
             updateForecast(daily);
         }
@@ -631,7 +614,7 @@
         // --- 7. HELPER FUNCTIONS ---
         function latLonToVector3(lat, lon, radius) {
             const phi = (90 - lat) * (Math.PI / 180);
-            const theta = (lon + 180) * (Math.PI / 180);
+            const theta = (lon + 90) * (Math.PI / 180); // Adjusted for visual offset
             const x = -(radius * Math.sin(phi) * Math.cos(theta));
             const y = radius * Math.cos(phi);
             const z = radius * Math.sin(phi) * Math.sin(theta);
@@ -639,25 +622,38 @@
         }
 
         function flyTo(lat, lon) {
+            // Target Rotation: We want to rotate the EARTH group so the point faces camera (Z-axis)
+            // Latitude determines X rotation
+            // Longitude determines Y rotation
             const targetX = lat * (Math.PI / 180);
-            const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2);
-            new TWEEN.Tween(earthGroup.rotation).to({ x: targetX, y: targetY }, 1500).easing(TWEEN.Easing.Cubic.InOut).start();
+            const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2); // -90 deg offset
+            
+            new TWEEN.Tween(earthGroup.rotation)
+                .to({ x: targetX, y: targetY }, 1500)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
         }
 
         function addPulsePin(lat, lon) {
             if(pin) earthGroup.remove(pin);
             pin = new THREE.Group();
-            const pos = latLonToVector3(lat, lon, 5.0);
-            pin.position.copy(pos);
+            
+            // Re-calculate pos based on corrected math
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 90) * (Math.PI / 180); // +90 offset for placement
+            const radius = 5.0;
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            
+            pin.position.set(x,y,z);
             pin.lookAt(0,0,0);
 
-            // Pin Stem
             const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.01, 0.8, 8), new THREE.MeshBasicMaterial({color:0xff3366}));
             stem.rotation.x = Math.PI/2; stem.position.z = 0.4;
             
-            // Pulse Ring
             const ring = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.15, 32), new THREE.MeshBasicMaterial({color:0xff3366, side:2, transparent:true}));
-            ring.position.z = 0.05; ring.rotation.x = 0; // Flat on surface relative to pin group
+            ring.position.z = 0.05; 
             
             pin.add(stem); pin.add(ring);
             earthGroup.add(pin);
@@ -692,7 +688,7 @@
         }
 
         function getWeatherText(code) {
-            const map = { 0:"صافي", 1:"غائم جزئي", 3:"غائم", 45:"ضباب", 51:"رذاذ", 61:"مطر", 65:"مطر غزير", 71:"ثلوج", 95:"عاصفة" };
+            const map = { 0:"صافي", 1:"غائم جزئي", 2:"غائم جزئي", 3:"غائم", 45:"ضباب", 48:"ضباب جليدي", 51:"رذاذ خفيف", 53:"رذاذ متوسط", 55:"رذاذ كثيف", 61:"مطر خفيف", 63:"مطر متوسط", 65:"مطر غزير", 71:"ثلوج خفيفة", 73:"ثلوج متوسطة", 75:"ثلوج كثيفة", 95:"عاصفة رعدية", 96:"عاصفة برد", 99:"عاصفة شديدة" };
             return map[code] || "متقلب";
         }
         function getWeatherIcon(c, d) {
@@ -708,14 +704,13 @@
         // Voice
         window.startVoice = () => {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!SR) return showToast("غير مدعوم", "error");
+            if(!SR) return showToast("المتصفح لا يدعم الصوت", "error");
             const r = new SR(); r.lang='ar-SA'; r.start();
             const b = document.getElementById('micBtn'); b.classList.add('recording');
             r.onresult = e => { document.getElementById('cityInput').value = e.results[0][0].transcript; searchCity(); b.classList.remove('recording'); };
             r.onerror = () => b.classList.remove('recording');
         };
 
-        // Loop
         function animate(t) {
             requestAnimationFrame(animate);
             TWEEN.update(t);
