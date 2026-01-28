@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EARTH PRO v2 | تفاعلي</title>
+    <title>EARTH PRO | Ultimate Edition</title>
     
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;500;700;900&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -13,14 +15,18 @@
             --blue: #4facfe;
             --purple: #7028e4;
             --dark: #0a0a0a;
-            --glass: rgba(15, 20, 30, 0.85);
+            --glass: rgba(15, 20, 35, 0.85);
             --border: rgba(255, 255, 255, 0.15);
             --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
         
-        body { background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; }
+        body { 
+            background: #000; overflow: hidden; height: 100vh; color: white; user-select: none; 
+            /* خلفية متدرجة لعمق أكبر */
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
+        }
 
         /* Canvas */
         #canvas-container { position: absolute; inset: 0; z-index: 1; cursor: grab; }
@@ -139,7 +145,7 @@
         /* Responsive */
         @media (max-width: 800px) {
             .dashboard { flex-direction: column-reverse; align-items: stretch; }
-            .left-col { width: 100%; display: none; } /* Hide chart on mobile to save space */
+            .left-col { width: 100%; display: none; }
             .weather-main { max-width: 100%; }
             .temp-huge { font-size: 3.5rem; }
             .search-dock { width: 100%; }
@@ -173,9 +179,9 @@
                 <button class="btn-icon" onclick="searchCity()">🔍</button>
                 <input type="text" id="cityInput" placeholder="اكتب المدينة أو انقر على الأرض..." onkeypress="if(event.key==='Enter') searchCity()">
                 <button class="btn-icon" id="micBtn" onclick="startVoice()">🎤</button>
-                <button class="btn-icon" onclick="locateUser()" title="موقعي الحالي">📍</button>
+                <button class="btn-icon" onclick="locateUser()" title="موقعي (GPS/IP)">📍</button>
             </div>
-            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v2</span></div>
+            <div class="brand">EARTH <span style="font-weight:300; font-size: 1rem; color:var(--blue)">PRO v3</span></div>
         </header>
 
         <div class="dashboard">
@@ -247,24 +253,24 @@
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.8;
 
-        // --- 2. EARTH OBJECTS ---
+        // --- 2. EARTH OBJECTS & SHADERS (IMPROVED) ---
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
 
         const texLoader = new THREE.TextureLoader();
 
-        // Earth
+        // Earth Surface (Standard Phong with Specular/Normal maps)
         const earthGeo = new THREE.SphereGeometry(5, 64, 64);
         const earthMat = new THREE.MeshPhongMaterial({
             map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
             specularMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg'),
             normalMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
-            shininess: 12
+            shininess: 15
         });
         const earth = new THREE.Mesh(earthGeo, earthMat);
         earthGroup.add(earth);
 
-        // Clouds
+        // Clouds (Rotating Layer)
         const cloudMat = new THREE.MeshPhongMaterial({
             map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
             transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
@@ -272,28 +278,50 @@
         const clouds = new THREE.Mesh(new THREE.SphereGeometry(5.08, 64, 64), cloudMat);
         earthGroup.add(clouds);
 
-        // Atmosphere Glow (Shader)
+        // Atmosphere Halo (ULTRA REALISTIC SHADER)
+        // This creates the glowing rim effect
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { 
-                c: { value: 0.5 }, p: { value: 4.0 }, glowColor: { value: new THREE.Color(0x4facfe) }, viewVector: { value: camera.position } 
+                c: { value: 0.6 }, 
+                p: { value: 4.0 }, 
+                glowColor: { value: new THREE.Color(0x4facfe) }, 
+                viewVector: { value: camera.position } 
             },
-            vertexShader: `uniform vec3 viewVector; varying float intensity; void main() { vec3 vNormal = normalize(normalMatrix * normal); vec3 vNormel = normalize(normalMatrix * viewVector); intensity = pow(c - dot(vNormal, vNormel), p); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-            fragmentShader: `uniform vec3 glowColor; varying float intensity; void main() { vec3 glow = glowColor * intensity; gl_FragColor = vec4(glow, 1.0); }`,
-            side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true
+            vertexShader: `
+                uniform vec3 viewVector;
+                varying float intensity;
+                void main() {
+                    vec3 vNormal = normalize(normalMatrix * normal);
+                    vec3 vNormel = normalize(normalMatrix * viewVector);
+                    intensity = pow(c - dot(vNormal, vNormel), p);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 glowColor;
+                varying float intensity;
+                void main() {
+                    vec3 glow = glowColor * intensity;
+                    gl_FragColor = vec4(glow, 1.0);
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
         });
-        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.4, 64, 64), atmosMat);
+        const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(5.35, 64, 64), atmosMat);
         scene.add(atmosphere);
 
-        // Twinkling Stars
+        // Stars (Background)
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 4000;
+        const starCount = 3500;
         const posArray = new Float32Array(starCount * 3);
         const sizeArray = new Float32Array(starCount);
         for(let i=0; i<starCount; i++) {
             posArray[i*3] = (Math.random()-0.5) * 800;
             posArray[i*3+1] = (Math.random()-0.5) * 800;
             posArray[i*3+2] = (Math.random()-0.5) * 800;
-            sizeArray[i] = Math.random() * 2;
+            sizeArray[i] = Math.random();
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
         starGeo.setAttribute('size', new THREE.BufferAttribute(sizeArray, 1));
@@ -315,85 +343,66 @@
 
         const canvas = document.getElementById('canvas-container');
         
-        canvas.addEventListener('mousedown', (e) => {
-            isDragging = false;
-            startPos = {x: e.clientX, y: e.clientY};
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            if(Math.abs(e.clientX - startPos.x) > 5 || Math.abs(e.clientY - startPos.y) > 5) {
-                isDragging = true;
-            }
-        });
-
-        canvas.addEventListener('mouseup', (e) => {
-            if(!isDragging) onGlobeClick(e);
-        });
-
-        // Touch support for mobile
-        canvas.addEventListener('touchstart', (e) => {
-            isDragging = false;
-            startPos = {x: e.touches[0].clientX, y: e.touches[0].clientY};
-        }, {passive: false});
+        canvas.addEventListener('mousedown', (e) => { isDragging = false; startPos = {x: e.clientX, y: e.clientY}; });
+        canvas.addEventListener('mousemove', (e) => { if(Math.abs(e.clientX - startPos.x) > 5) isDragging = true; });
+        canvas.addEventListener('mouseup', (e) => { if(!isDragging) onGlobeClick(e); });
+        canvas.addEventListener('touchstart', (e) => { isDragging = false; startPos = {x: e.touches[0].clientX, y: e.touches[0].clientY}; }, {passive: false});
 
         function onGlobeClick(event) {
-            // Calculate mouse position
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            // Raycast against the Earth mesh (not the group, not clouds)
             const intersects = raycaster.intersectObject(earth);
 
             if (intersects.length > 0) {
                 const point = intersects[0].point;
-                // Convert 3D point to Lat/Lon
-                // Note: This matches the texture mapping of the sphere
-                const spherical = new THREE.Spherical().setFromVector3(point);
-                
-                // Adjust for rotation of the earthGroup
-                // We need to act as if the earth is at rotation 0 to get the correct texture UV lat/lon
-                // However, our visual earth is rotating. 
-                // A simpler way for visual clicking is to use the UV coordinates if available, 
-                // OR mathematically compensate.
-                
-                // Simplified method using group rotation:
-                // We rotate the group, so the local point needs to be "unrotated"
+                // Inverse the group rotation to find static local point
                 const localPoint = point.clone().applyMatrix4(earthGroup.matrixWorld.invert());
                 const localSpherical = new THREE.Spherical().setFromVector3(localPoint);
 
                 let lat = 90 - (localSpherical.phi * 180 / Math.PI);
                 let lon = (localSpherical.theta * 180 / Math.PI); 
 
-                // Correct longitude for texture offset usually present in ThreeJS primitives
-                // The standard sphere UV usually maps 0 to +z, need to check offset.
-                // Standard: lon needs +90 or similar correction. Let's try direct map first.
-                // Correction for standard Three.js sphere UVs
-                
-                // Better approach: Let's trust the UVs if simple math fails, but simple math:
-                // lat = 90 - phi_deg
-                // lon = theta_deg
-                // Note: Three.js sphere starts textures at specific point.
-                // Let's rely on standard mapping.
-                
                 showToast("جاري جلب الطقس للإحداثيات...", "info");
                 searchByCoords(lat, lon, true);
             }
         }
 
 
-        // --- 4. WEATHER LOGIC ---
+        // --- 4. WEATHER LOGIC & SMART LOCATION ---
         
+        // ** Improved Location Logic: GPS with IP Fallback **
         window.locateUser = () => {
-            showToast("تحديد موقعك...", "info");
+            showToast("جاري تحديد الموقع...", "info");
+            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => searchByCoords(pos.coords.latitude, pos.coords.longitude),
-                    () => showToast("تعذر تحديد الموقع. تأكد من تفعيل GPS", "error")
+                    (pos) => {
+                        searchByCoords(pos.coords.latitude, pos.coords.longitude);
+                    },
+                    (err) => {
+                        console.warn("GPS failed/denied. Falling back to IP...");
+                        fetchIPLocation();
+                    },
+                    { timeout: 5000 } // Wait 5s for GPS, then fallback
                 );
+            } else {
+                fetchIPLocation();
             }
         };
+
+        // Fallback function for IP Location
+        async function fetchIPLocation() {
+            try {
+                const res = await fetch('https://ipapi.co/json/').then(r => r.json());
+                showToast(`تم التحديد عبر الشبكة: ${res.city}`);
+                searchByCoords(res.latitude, res.longitude);
+            } catch(e) {
+                showToast("تعذر تحديد الموقع نهائياً", "error");
+            }
+        }
 
         window.searchCity = async () => {
             const city = document.getElementById('cityInput').value;
@@ -413,9 +422,8 @@
             if(isFetching) return;
             isFetching = true;
 
-            // Stop auto rotation temporarily for focus
             controls.autoRotate = false;
-            setTimeout(() => controls.autoRotate = true, 10000);
+            setTimeout(() => controls.autoRotate = true, 15000); // Pause rotation longer to view
 
             // Animation
             flyTo(lat, lon);
@@ -437,7 +445,6 @@
             
             document.querySelectorAll('.panel').forEach(p => p.classList.add('active'));
 
-            // Text Info
             const cityDisplay = isClick ? `إحداثيات محددة` : data.timezone.split('/')[1].replace(/_/g, ' ');
             document.getElementById('uiCity').innerText = cityDisplay;
             document.getElementById('coordsDisplay').innerText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
@@ -462,8 +469,8 @@
                 sunLight.intensity = 2.5;
                 atmosphere.material.uniforms.glowColor.value.setHex(0x4facfe);
             } else {
-                sunLight.intensity = 0.1;
-                atmosphere.material.uniforms.glowColor.value.setHex(0x2a0a5e); // Deep purple night
+                sunLight.intensity = 0.2;
+                atmosphere.material.uniforms.glowColor.value.setHex(0x2a0a5e); // Deep purple night glow
             }
         }
 
@@ -471,7 +478,6 @@
             const container = document.getElementById('forecastRow');
             container.innerHTML = '';
             
-            // Show 5 days
             for(let i=0; i<5; i++) {
                 const date = new Date(daily.time[i]);
                 const dayName = date.toLocaleDateString('ar-EG', {weekday: 'short'});
@@ -524,11 +530,9 @@
         // --- 6. VISUAL HELPERS ---
 
         function flyTo(lat, lon) {
-            // Target rotation
             const targetX = lat * (Math.PI / 180);
             const targetY = -1 * (lon * (Math.PI / 180)) - (Math.PI / 2);
 
-            // Smooth Tween
             new TWEEN.Tween(earthGroup.rotation)
                 .to({ x: targetX, y: targetY }, 1500)
                 .easing(TWEEN.Easing.Cubic.InOut)
@@ -538,7 +542,6 @@
         function addPulsePin(lat, lon) {
             if(pin) earthGroup.remove(pin);
             
-            // Spherical to Cartesian
             const r = 5.05;
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
@@ -547,10 +550,8 @@
             const y = r * Math.cos(phi);
             const z = r * Math.sin(phi) * Math.sin(theta);
 
-            // Create Pin Group
             pin = new THREE.Group();
             
-            // 1. The Stick
             const stem = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.05, 0.02, 0.5, 8),
                 new THREE.MeshBasicMaterial({color: 0xffffff})
@@ -558,37 +559,26 @@
             stem.rotation.x = Math.PI/2;
             stem.position.z = 0.25;
             
-            // 2. The Head (Pulsing Sphere)
             const head = new THREE.Mesh(
                 new THREE.SphereGeometry(0.15, 16, 16),
                 new THREE.MeshBasicMaterial({color: 0xff0055})
             );
             head.position.z = 0.5;
 
-            // 3. Pulse Ring
             const ringGeo = new THREE.RingGeometry(0.1, 0.15, 32);
             const ringMat = new THREE.MeshBasicMaterial({color: 0xff0055, side: THREE.DoubleSide, transparent:true});
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.position.z = 0.02;
-            ring.lookAt(0,0,0); // Flat on surface
+            ring.lookAt(0,0,0);
 
-            pin.add(stem);
-            pin.add(head);
-            pin.add(ring);
-            
+            pin.add(stem); pin.add(head); pin.add(ring);
             pin.position.set(x, y, z);
             pin.lookAt(0,0,0);
             earthGroup.add(pin);
 
-            // Pulse Animation Loop
-            new TWEEN.Tween(ring.scale)
-                .to({x: 5, y: 5}, 1500)
-                .repeat(Infinity)
-                .start();
-            new TWEEN.Tween(ring.material)
-                .to({opacity: 0}, 1500)
-                .repeat(Infinity)
-                .start();
+            // Continuous Pulse
+            new TWEEN.Tween(ring.scale).to({x: 5, y: 5}, 1500).repeat(Infinity).start();
+            new TWEEN.Tween(ring.material).to({opacity: 0}, 1500).repeat(Infinity).start();
         }
 
         function updateChart(hourly) {
@@ -607,14 +597,14 @@
                         data: hourly.temperature_2m.slice(0, 12),
                         borderColor: '#4facfe',
                         backgroundColor: gradient,
-                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2, pointBackgroundColor: '#fff'
+                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fff'
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { 
-                        x: { display: true, ticks: {color: 'rgba(255,255,255,0.3)', font:{size:9}} }, 
+                        x: { display: true, ticks: {color: 'rgba(255,255,255,0.3)', font:{size:9}}, grid: {display:false} }, 
                         y: { display: false } 
                     }
                 }
@@ -642,11 +632,7 @@
             toast.className = `toast ${type}`;
             toast.innerText = msg;
             container.appendChild(toast);
-            
-            // Animation trigger
             requestAnimationFrame(() => toast.classList.add('show'));
-            
-            // Remove
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 500);
@@ -658,16 +644,11 @@
             requestAnimationFrame(animate);
             TWEEN.update(t);
             controls.update();
-            
-            // Rotate Clouds separately
             clouds.rotation.y += 0.0003; 
             
-            // Twinkle Stars
-            if(Math.random() > 0.9) {
-                stars.material.opacity = 0.5 + Math.random() * 0.5;
-            }
+            if(Math.random() > 0.9) stars.material.opacity = 0.5 + Math.random() * 0.5;
 
-            // Shader updates
+            // Shader update for atmosphere glow direction
             atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, atmosphere.position);
             
             renderer.render(scene, camera);
@@ -682,7 +663,6 @@
             }, 1000);
         };
         
-        // Handle Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
